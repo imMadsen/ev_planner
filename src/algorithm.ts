@@ -19,7 +19,7 @@ type Vehicle = {
 
 type ChargingStation = {
     vertice: Vertice;
-    connections: (x: number) => number[];
+    connections: ((x: number) => number)[];
 }
 
 function getShortestPath(start: Vertice, target: Vertice): Edge[] {
@@ -58,13 +58,33 @@ function myAlgorithm(
         return { path } 
 
     // Iterate over all chargingStaions and find the ideal one
+    let candidate: ChargingStation | undefined;
+    let candidateTimeOfDeparture = 0;
+
     for (const chargingStation of chargingStations) {
         const path = getShortestPath(start, chargingStation.vertice);
         const cost = getPowerUsagesOfTraversel(vehicle, path);
 
-        const timeOfArrival = startingTime + cost.timeUsage;
+        // const timeOfArrival = startingTime + cost.timeUsage; This is for sure needed
 
+        chargingStation.connections.forEach((func) => {
+            // const connectorOutput = func(timeOfArrival);
+            const timeOfDepareture = 999 // We need da maths....
+            if (timeOfDepareture < candidateTimeOfDeparture) {
+                candidate = chargingStation;
+                candidateTimeOfDeparture = timeOfDepareture
+            }
+        })
     }
+
+    if (!candidate) {
+        throw new Error("No charging station could be found, this is a very sad moment :(")
+    }
+
 
     return { path: [] } 
 }
+
+
+// Problemattiker
+// Hvad nu hvis connectorens output pludselig blev større senere hen, aka. du er ved Tesla charger, og så er der en der springer fra.
