@@ -13,9 +13,13 @@ type Vehicle = {
     batteryCapacity: number;
 }
 
+type Connector = {
+    expectedOutput: [number, number][]
+}
+
 type ChargingStation = {
     vertex: Vertex;
-    connections: ((x: number) => number)[];
+    connectors: Connector[];
 }
 
 const verticies: Vertex[] = [{ nickname: "A"}, { nickname: "B"}, { nickname: "C"}];
@@ -71,7 +75,7 @@ function myAlgorithm(
     chargingStations: ChargingStation[],
     startingTime: number,
 ): Edge[] {
-    function recursion(accumulatedEdges: Edge[], start: Vertex) { // Fix type here :)
+    function recursion(accumulatedEdges: Edge[], start: Vertex) {
         console.log("Recursion, starting from", start.nickname, "end destination", target.nickname)
         
         // Check if already at destination
@@ -82,10 +86,9 @@ function myAlgorithm(
         // Get shortest path to destination
         const path = getShortestPath(start, target);
         const energyUsage = getEnergyConsumptionOfTraversel(vehicle, path);
-
-        // Check if path can be traversed without visiting any chargingStation
         console.log("Traversel Cost", energyUsage, "BatteryState (Without chargers)", vehicle.batteryState - energyUsage)
-
+        
+        // Check if path can be traversed without visiting any chargingStation
         if (vehicle.batteryState - energyUsage >= 0) {
             accumulatedEdges = [...accumulatedEdges, ...path]
             return accumulatedEdges;
@@ -93,17 +96,16 @@ function myAlgorithm(
 
         // Iterate over all chargingStaions and find the ideal one
         let candidate: ChargingStation | undefined;
-        let candidateTimeOfDeparture = 9999;
+        let candidateTimeOfDeparture = 999999;
         let candidatePath: Edge[] | undefined;
 
         for (const chargingStation of chargingStations) {
             const path = getShortestPath(start, chargingStation.vertex);
             const timeOfArrival = startingTime + getTimeConsumptionOfTraversal(vehicle, path);
             
-            for (const func of chargingStation.connections) {
-                // const connectorOutput = func(timeOfArrival);
-                const chargingDelay = 5; // We need da maths here.
-                const timeOfDepareture = timeOfArrival + chargingDelay
+            for (const connector of chargingStation.connectors) {
+                const timeOfDepareture = 0; // Need some function that interpolates between outputFunc.expectedOutput, and returns the sum for a given interval... but my brian is fried
+                                
                 if (timeOfDepareture < candidateTimeOfDeparture) {
                     candidate = chargingStation;
                     candidatePath = path;
@@ -129,7 +131,9 @@ function myAlgorithm(
 
 const chargingStations: ChargingStation[] = [{
     vertex: verticies[1],
-    connections: [(x: number) => x]
+    connectors: [{
+        expectedOutput: [[0,0], [0,0]]
+    }]
 }]
 
 const vehicle: Vehicle = {
@@ -142,6 +146,3 @@ const target = verticies[2]
 
 const path = myAlgorithm(start, target, vehicle, chargingStations, 0);
 console.log("Final Path", path.map((path => `${path.startVertex.nickname}->${path.endVertex.nickname}`)).join('|'))
-
-// Problemattiker
-// Hvad nu hvis connectorens output pludselig blev større senere hen, aka. du er ved Tesla charger, og så er der en der springer fra.
