@@ -64,21 +64,14 @@ function getTimeConsumptionOfTraversal(vehicle: Vehicle, path: Edge[]) {
     return accumulated;
 }
 
-// vertices: Vertice[],
-// edges: Edge[],
-
-type MyAlgorithmOutput = { path: Edge[] };
-
 function myAlgorithm(
     start: Vertex,
     target: Vertex,
     vehicle: Vehicle,
     chargingStations: ChargingStation[],
     startingTime: number,
-): MyAlgorithmOutput {
-
-
-    function recursion(start: Vertex): any { // Fix type here :)
+): Edge[] {
+    function recursion(accumulatedEdges: Edge[], start: Vertex) { // Fix type here :)
         console.log("Recursion, starting from", start.nickname, "end destination", target.nickname)
         
         // Check if already at destination
@@ -93,12 +86,15 @@ function myAlgorithm(
         // Check if path can be traversed without visiting any chargingStation
         console.log("Traversel Cost", energyUsage, "BatteryState (Without chargers)", vehicle.batteryState - energyUsage)
 
-        if (vehicle.batteryState - energyUsage >= 0)
-            return { path } 
+        if (vehicle.batteryState - energyUsage >= 0) {
+            accumulatedEdges = [...accumulatedEdges, ...path]
+            return accumulatedEdges;
+        }
 
         // Iterate over all chargingStaions and find the ideal one
         let candidate: ChargingStation | undefined;
         let candidateTimeOfDeparture = 9999;
+        let candidatePath: Edge[] | undefined;
 
         for (const chargingStation of chargingStations) {
             const path = getShortestPath(start, chargingStation.vertex);
@@ -110,6 +106,7 @@ function myAlgorithm(
                 const timeOfDepareture = timeOfArrival + chargingDelay
                 if (timeOfDepareture < candidateTimeOfDeparture) {
                     candidate = chargingStation;
+                    candidatePath = path;
                     candidateTimeOfDeparture = timeOfDepareture
                 }
             }
@@ -117,15 +114,15 @@ function myAlgorithm(
 
         if (!candidate) {
             throw new Error("No Charging Station Candidate could be found making the route impossible 😭")
-        } else {
-            vehicle.batteryState = 100;
         }
+        
+        accumulatedEdges = [...accumulatedEdges, ...candidatePath!]
+        vehicle.batteryState = 100;
 
-
-        return recursion(candidate.vertex);
+        return recursion(accumulatedEdges, candidate.vertex);
     }
 
-    return recursion(start)
+    return recursion([], start)
 }
 
 // Sandbox
@@ -144,7 +141,7 @@ const start = verticies[0];
 const target = verticies[2]
 
 const path = myAlgorithm(start, target, vehicle, chargingStations, 0);
-console.log("Final Path", JSON.stringify(path))
+console.log("Final Path", path.map((path => `${path.startVertex.nickname}->${path.endVertex.nickname}`)).join('|'))
 
 // Problemattiker
 // Hvad nu hvis connectorens output pludselig blev større senere hen, aka. du er ved Tesla charger, og så er der en der springer fra.
