@@ -56,7 +56,9 @@ const vehicle: Vehicle = {
   efficiencyCurve(x) {
     return x * 2;
   },
-} 
+}
+
+const connectors: Connector[] = []; 
 
 // Using a Subset for dev purposes
 const chargingStations = allChargingStations.slice(0);
