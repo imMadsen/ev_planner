@@ -8,6 +8,10 @@ type Edge = {
     cost: number;
 }
 
+type Path = {
+    batteryState: number;
+}
+
 type Vehicle = {
     batteryState: number;
     batteryCapacity: number;
@@ -68,6 +72,10 @@ function getTimeConsumptionOfTraversal(vehicle: Vehicle, path: Edge[]) {
     return accumulated;
 }
 
+function getTimeConsumptionOfCharging(vehicle: Vehicle, connector: Connector, batteryState: number) {
+    return 0;
+}
+
 function myAlgorithm(
     start: Vertex,
     target: Vertex,
@@ -75,43 +83,38 @@ function myAlgorithm(
     chargingStations: ChargingStation[],
     startingTime: number,
 ): Edge[] {
-    function recursion(accumulatedEdges: Edge[], start: Vertex) {
+    function recurse(accumulatedEdges: Edge[], start: Vertex) {
         console.log("Recursion, starting from", start.nickname, "end destination", target.nickname)
         
-        // Check if already at destination
-        if (start === target) {
-            throw new Error("We have arrived!")
-        }
-        
-        // Get shortest path to destination
-        const path = getShortestPath(start, target);
-        const energyUsage = getEnergyConsumptionOfTraversel(vehicle, path);
-        console.log("Traversel Cost", energyUsage, "BatteryState (Without chargers)", vehicle.batteryState - energyUsage)
-        
-        // Check if path can be traversed without visiting any chargingStation
-        if (vehicle.batteryState - energyUsage >= 0) {
-            accumulatedEdges = [...accumulatedEdges, ...path]
-            return accumulatedEdges;
-        }
 
-        // Iterate over all chargingStaions and find the ideal one
+        // Iterate over all chargingStaions and find one
         let candidate: ChargingStation | undefined;
         let candidateTimeOfDeparture = 999999;
         let candidatePath: Edge[] | undefined;
 
         for (const chargingStation of chargingStations) {
-            const path = getShortestPath(start, chargingStation.vertex);
-            const timeOfArrival = startingTime + getTimeConsumptionOfTraversal(vehicle, path);
-            
-            for (const connector of chargingStation.connectors) {
-                const timeOfDepareture = 0; // Need some function that interpolates between outputFunc.expectedOutput, and returns the sum for a given interval... but my brian is fried
-                                
-                if (timeOfDepareture < candidateTimeOfDeparture) {
-                    candidate = chargingStation;
-                    candidatePath = path;
-                    candidateTimeOfDeparture = timeOfDepareture
-                }
+            // Calculate the path to the charger
+            const chargingPath = getShortestPath(start, chargingStation.vertex);
+            const chargingEnergyUsage = getEnergyConsumptionOfTraversel(vehicle, chargingPath);
+
+            // Check if possible reach chargingStation given batteryState
+            if (chargingEnergyUsage >= vehicle.batteryState) {
+                // Charging station is not a valid candidate since it can't be reached
+                break;
             }
+
+            // Calculate the path from charger to target
+            const targetPath = getShortestPath(chargingStation.vertex, target);
+            const targetEnergyUsage = getEnergyConsumptionOfTraversel(vehicle, targetPath);
+            
+            // Calculate if charger can provide the given amount to reach target
+            if (targetEnergyUsage >= vehicle.batteryCapacity) {
+                // Target can still not be reached, look for paths to chargingStations
+                break;
+            }
+            
+            // If it is possible, let's set the score of this chargingStation the be the estimated time of arrival
+            
         }
 
         if (!candidate) {
@@ -121,10 +124,23 @@ function myAlgorithm(
         accumulatedEdges = [...accumulatedEdges, ...candidatePath!]
         vehicle.batteryState = 100;
 
-        return recursion(accumulatedEdges, candidate.vertex);
+        return recurse(accumulatedEdges, candidate.vertex);
     }
 
-    return recursion([], start)
+    let accumulatedEdges: Edge[] = [];
+
+    // Get shortest path to destination
+    const path = getShortestPath(start, target);
+    const energyUsage = getEnergyConsumptionOfTraversel(vehicle, path);
+    
+    // Check if path can be traversed without visiting any chargingStation
+    if (vehicle.batteryState - energyUsage >= 0) {
+        accumulatedEdges = [...accumulatedEdges, ...path]
+        return accumulatedEdges;
+    }
+    
+    // Start looking for chargingStations that could potentially help!
+    return recurse(accumulatedEdges, start)
 }
 
 // Sandbox
