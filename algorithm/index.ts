@@ -9,6 +9,7 @@ type Edge = {
 }
 
 type Path = {
+    edges: Edge[];
     batteryState: number;
 }
 
@@ -87,11 +88,11 @@ function myAlgorithm(
         console.log("Recursion, starting from", start.nickname, "end destination", target.nickname)
         
 
-        // Iterate over all chargingStaions and find one
         let candidate: ChargingStation | undefined;
         let candidateTimeOfDeparture = 999999;
         let candidatePath: Edge[] | undefined;
-
+        
+        // Iterate over all chargingStaions and find one
         for (const chargingStation of chargingStations) {
             // Calculate the path to the charger
             const chargingPath = getShortestPath(start, chargingStation.vertex);
