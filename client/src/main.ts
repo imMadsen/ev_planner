@@ -1,10 +1,12 @@
-import { ChargingStation, Edge, Vertex, myAlgorithm, type Vehicle } from "algorithm";
 import { map, tileLayer } from "leaflet";
+import { ChargingStation, Edge, Vertex, myAlgorithm, type Vehicle } from "algorithm";
+import { createDummyConnector } from "algorithm/dummy";
 import { chargingStations as chargeMapChargingStations } from "./chargemap";
 import { coordsToLatLngs, decodeOSMGeometry } from "./utilities";
 import 'leaflet/dist/leaflet.css';
 import './index.css'
 import { OSRMResponse } from "./osrm.types";
+import { createDummyChargeMapConnectors } from "./dummy";
 
 const myMap = map("map").setView([56.511984, 10.067244], 13); // Set initial view
 
@@ -78,8 +80,8 @@ async function getTimeConsumptionOfTraversal(vehicle: Vehicle, path: Edge[]) {
 const origin = {} as Vertex;
 const destination = {} as Vertex;
 
-const chargingStations: ChargingStation[] = chargeMapChargingStations.map(() => ({
-    connectors: [],
+const chargingStations: ChargingStation[] = chargeMapChargingStations.map(chargingStation => ({
+    connectors: createDummyChargeMapConnectors(chargingStation.pool.charging_connectors),
     vertex: {} as Vertex
 }))
 
