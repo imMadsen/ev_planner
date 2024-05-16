@@ -2,7 +2,7 @@ import { Dijkstra } from "./dijkstra";
 
 const vertices: Vertex[] = [{ nickname: "A" }, { nickname: "B" }, { nickname: "C" }, { nickname: "D" }, { nickname: "E" }];
 
-const myGraph: Graph = {
+export const myGraph: Graph = {
     vertices,
     edges: [
         { cost: 1, startVertex: vertices[0], endVertex: vertices[1] },
