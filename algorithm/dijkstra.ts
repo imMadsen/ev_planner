@@ -35,7 +35,7 @@ export function dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
             } 
         }
 
-        if (!u) throw "This should not be able to happen 🤡";
+        if (!u) throw "Dijkstra was unable to find a valid path 🤡";
 
         if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
         if (u === destination) break;
