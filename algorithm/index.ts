@@ -54,8 +54,8 @@ export async function myAlgorithm(
     const vertices = [origin, destination, ...chargingStations.map(chargingStation => chargingStation.vertex)]
     const edges: Edge[] = []; 
 
-    vertices.forEach(v1 => {
-        vertices.forEach(async v2 => {
+    for (const v1 of vertices)
+        for (const v2 of vertices)
             if (v1 !== v2) {
                 try { // This try catch is needed since if a path is impossible getShortestPath->dijkstra will throw an error
                     edges.push({
@@ -65,8 +65,6 @@ export async function myAlgorithm(
                     })
                 } catch(e) { /* Invalid Path */}
             }
-        });
-    })
 
     const newGraph: Graph = {
         vertices,

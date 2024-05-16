@@ -29,7 +29,7 @@ const myGraph: Graph = {
   ],
 };
 
-function getShortestPath(origin: Vertex, destination: Vertex) {
+async function getShortestPath(origin: Vertex, destination: Vertex) {
   const edges: Edge[] = [];
   const vertices = dijkstra(myGraph, origin, destination);
   for (let i = 1; i < vertices.length; i++) {
@@ -43,7 +43,7 @@ function getShortestPath(origin: Vertex, destination: Vertex) {
   return edges;
 }
 
-function getEnergyConsumptionOfTraversel(vehicle: Vehicle, path: Edge[]) {
+async function getEnergyConsumptionOfTraversel(vehicle: Vehicle, path: Edge[]) {
   let accumulated = 0;
   for (const edge of path) {
     accumulated += edge.cost;
@@ -89,7 +89,7 @@ const chargingStations: ChargingStation[] = [
 ];
 
 console.log(
-  myAlgorithm(
+  await myAlgorithm(
     getShortestPath,
     getEnergyConsumptionOfTraversel,
     origin,
