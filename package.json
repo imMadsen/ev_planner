@@ -1,0 +1,9 @@
+{
+    "name": "fitting-monorepo",
+    "private": true,
+    "workspaces": [
+      "algorithm/*",
+      "client/*"
+    ]
+  }
+  
