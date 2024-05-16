@@ -1,6 +1,5 @@
 import { map, tileLayer } from "leaflet";
 import { ChargingStation, Edge, Vertex, myAlgorithm, type Vehicle } from "algorithm";
-import { createDummyConnector } from "algorithm/dummy";
 import { chargingStations as chargeMapChargingStations } from "./chargemap";
 import { coordsToLatLngs, decodeOSMGeometry } from "./utilities";
 import 'leaflet/dist/leaflet.css';
