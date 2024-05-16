@@ -1,5 +1,6 @@
 import { LatLng, LatLngTuple } from "leaflet";
-
+import { ChargingStation } from "./chargemap";
+import { OSRMResponse } from "./osrm.types";
 function coordsToLatLng(coords: number[]) {
 	return new LatLng(coords[1], coords[0], coords[2]);
 }
@@ -80,7 +81,38 @@ export function distancePointToLineSegment(x: number, y: number, lx1: number, ly
   return distance;
 }
 
+export function distancePointToLineSegmentInKM(x: number, y: number, lx1: number, ly1: number, lx2: number, ly2: number) {
+  return distancePointToLineSegment(x, y, lx1, ly1, lx2, ly2) * 113.32;
+}
+
 // Should be used to generate the available outputs for the connectors
 export function binarySinusWave(x: number, scale = 1, offset = 0) {
   return Math.abs(Math.round(Math.sin(x * scale + offset)))
+}
+
+export function filterChargingStations(stations: ChargingStation[]): ChargingStation[] {
+  return stations.filter(station => {
+      return station.pool.charging_connectors.every(connector => connector.power_max >= 0);
+  });
+}
+
+export async function getRouteData(latStart:number, lngStart: number, latEnd:number, lngEnd:number) {
+  const coordinates = `${lngStart},${latStart};${lngEnd},${latEnd}`;
+  const url = `http://127.0.0.1:5000/route/v1/driving/${coordinates}?exclude=ferry`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log(data)
+    // Check if the route is valid
+    if (data.code !== 'Ok') {
+      throw new Error(`Error in route response: ${data.message}`);
+    }
+    return data as OSRMResponse
+  } catch (error) {
+    throw new Error(`Error fetching the route:${error}`);
+  }
 }

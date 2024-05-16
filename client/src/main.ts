@@ -2,7 +2,8 @@ import { geoJson, map, tileLayer, circleMarker } from "leaflet";
 import { ChargingStation, chargingStations as allChargingStations } from "./chargemap";
 import 'leaflet/dist/leaflet.css';
 import './index.css'
-import { coordsToLatLngs, decodeOSMGeometry, distancePointToLineSegment } from "./utilities";
+import { coordsToLatLngs, decodeOSMGeometry, distancePointToLineSegmentInKM, filterChargingStations, getRouteData } from "./utilities";
+import { OSRMResponse } from "./osrm.types";
 
 type Vehicle = {
   stateOfCharge: number;
@@ -21,7 +22,15 @@ tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 // If they want 6 digits of precision
 const mul = false ? 1e6 : 1e5;
-const nodes = decodeOSMGeometry("y}c{Igqs{@fgY`gRzkOxpU|uLbeDtd[q`HvpPgji@`~JicEl}MejWz`\\q~@lqLzaNnzJ`cA`fLzv\\`_Z~sMpg]|yk@p{LtbDveNc`E~}Pv|^r_YyyDdd]jhN`|XdArnBjxG", mul);
+
+//Gets data for route
+const journeyData: OSRMResponse = await getRouteData(57.732561, 10.582929, 55.677060, 12.573666)
+
+let nodes: number[][] = [];
+// Loop through each step within each leg and concatenate each geometry to the nodes array
+journeyData.routes.forEach(route => {
+  nodes = [...nodes, ...decodeOSMGeometry(route.geometry, mul)];
+});
 
 //turn this into geojson
 const json = {
@@ -61,53 +70,32 @@ const vehicle: Vehicle = {
 const connectors: Connector[] = []; 
 
 // Using a Subset for dev purposes
-const chargingStations = allChargingStations.slice(0);
+const chargingStations = filterChargingStations(allChargingStations);
 
 const closestChargingStations: ChargingStation[][] = []; // How many charging stations to evaluate for each segment (A segment consists of the distance between two nodes)
-const k = 5; // For example, set k to 3 for evaluating the 3 closest charging stations for each segment
 
 // Gets the nearest charging stations by projecting to the Edges
 let previousNode: number[] | undefined;
+const maxRange = 5; // Maximum distance from the line segment in km
 nodes.forEach((node, index) => {
-  const [lng1, lat1] = node;
-  if (previousNode !== undefined && index > 0) {
-    const [lng2, lat2] = previousNode;
-    const nearestChargingStations: { distance: number, chargingStation: ChargingStation }[] = [];
+    const [lng1, lat1] = node;
 
-    chargingStations.forEach((chargingStation) => {
-      const dist = distancePointToLineSegment(chargingStation.lat, chargingStation.lng, lat1, lng1, lat2, lng2);
-      nearestChargingStations.push({ distance: dist, chargingStation });
-    });
+    if (previousNode !== undefined && index > 0) {
+        const [lng2, lat2] = previousNode;
+        const chargingStationsInRange: ChargingStation[] = [];
 
-    // Sort the nearest charging stations by distance
-    nearestChargingStations.sort((a, b) => a.distance - b.distance);
+        chargingStations.forEach((chargingStation) => {
+            const dist = distancePointToLineSegmentInKM(chargingStation.lat, chargingStation.lng, lat1, lng1, lat2, lng2);
+            if (dist <= maxRange) {
+                chargingStationsInRange.push(chargingStation);
+            }
+        });
 
-    // Get the first k closest charging stations
-    const closestStationsForSegment = nearestChargingStations.slice(0, k).map(entry => entry.chargingStation);
+        closestChargingStations.push(chargingStationsInRange);
+    }
 
-    closestChargingStations.push(closestStationsForSegment);
-  }
-
-  previousNode = node;
+    previousNode = node;
 });
-
-// Gets the nearest charging stations based on Nodes Distance
-// mainPath.forEach((pathCoordinate) => {
-//   const [lng, lat] = pathCoordinate;
-  
-//   const shortestDistance: { distance: number, chargingStation: ChargingStation | null } = { distance: Number.MAX_SAFE_INTEGER, chargingStation: null }
-//   chargingStations.forEach((chargingStation) => {
-//     const dist = euclideanDistance(lng, lat, chargingStation.lng, chargingStation.lat);
-//     if (dist < shortestDistance.distance) {
-//       shortestDistance.distance = dist;
-//       shortestDistance.chargingStation = chargingStation;
-//     }
-//   })
-
-//   if (shortestDistance.chargingStation)
-//     closestChargingStations.push(shortestDistance.chargingStation)
-// })
-
 
 chargingStations.forEach((chargingStation) => {
     const { lng, lat } = chargingStation;
