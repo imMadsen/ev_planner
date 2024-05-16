@@ -4,6 +4,10 @@ export function Dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
         return edge ? edge.cost : Number.MAX_SAFE_INTEGER
     }
 
+    function neighbour(u: Vertex): Vertex[] {
+        return [...new Set(graph.edges.filter(edge => edge.startVertex === u).map((edge) => edge.endVertex))]
+    }
+
     const dist = new Map<Vertex, number>();
     const previous = new Map<Vertex, Vertex | undefined>();
 
@@ -15,19 +19,30 @@ export function Dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
     dist.set(origin, 0);
 
     // Create a copy of verticies
-    const Q = [...graph.vertices];
+    let Q = [...graph.vertices];
 
     while (Q.length > 0) {
-        const u = Q[0];
+        // vertex in Q with smallest dist[]
+        let u: Vertex | undefined;
+        let _dist = Number.MAX_SAFE_INTEGER;
+        for (const _u of Q) {
+            const _u_dist = dist.get(_u)!;
+            if (_u_dist < _dist) {
+                u = _u;
+                _dist = _u_dist;
+            } 
+        }
+
+        if (!u) throw "This should not be able to happen 🤡";
 
         if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
         if (u === destination) break;
         
         // Remove u from Q
-        Q.filter(i => i !== u)
-
-        const neighbours = Q.filter(i => i);
-        for (const v of neighbours) {
+        Q = Q.filter(i => i !== u)
+        
+        console.log("Iteration")
+        for (const v of neighbour(u)) {
             const alt = dist.get(u)! + cost_between(u, v)
             if (alt < dist.get(v)!) {
                 dist.set(v, alt);
@@ -41,12 +56,25 @@ export function Dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
     while (previous.get(u)) {
         S.push(u);
         u = previous.get(u)!;
-    }
+    }   
 
-    return S;
+    S.push(origin)
+
+    return S.reverse();
 }
+
+const vertices: Vertex[] = [{ nickname: "A" }, { nickname: "B" }, { nickname: "C" }, { nickname: "D" }, { nickname: "E" }];
 
 const myGraph: Graph = {
-    vertices: [],
-    edges: []
+    vertices,
+    edges: [
+        { cost: 1, startVertex: vertices[0], endVertex: vertices[1] },
+        { cost: 5, startVertex: vertices[0], endVertex: vertices[2] },
+        { cost: 10, startVertex: vertices[1], endVertex: vertices[2] },
+        { cost: 1, startVertex: vertices[2], endVertex: vertices[3] },
+        { cost: 10, startVertex: vertices[3], endVertex: vertices[4] },
+        { cost: 1, startVertex: vertices[2], endVertex: vertices[4] },
+    ]
 }
+
+console.log(Dijkstra(myGraph, vertices[0], vertices[1]))
