@@ -1,4 +1,4 @@
-import { Dijkstra } from "./dijkstra";
+import { dijkstra } from "./dijkstra";
 
 const vertices: Vertex[] = [{ nickname: "A" }, { nickname: "B" }, { nickname: "C" }, { nickname: "D" }, { nickname: "E" }];
 
@@ -13,5 +13,3 @@ export const myGraph: Graph = {
         { cost: 1, startVertex: vertices[2], endVertex: vertices[4] },
     ]
 }
-
-console.log(Dijkstra(myGraph, vertices[0], vertices[1]))

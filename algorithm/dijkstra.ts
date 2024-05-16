@@ -1,4 +1,4 @@
-export function Dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
+export function dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
     function cost_between(u: Vertex, v: Vertex) {
         const edge = graph.edges.find(edge => edge.startVertex === u && edge.endVertex === v)
         return edge ? edge.cost : Number.MAX_SAFE_INTEGER
