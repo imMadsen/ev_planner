@@ -49,8 +49,30 @@ function myAlgorithm(
         return "We can run this shit in one.";
     }
 
-    // Find charging station that may be most relevant
-    
+    // Create a new Graph that only represents distances between chargingStations, origin & destination
+    const vertices = [origin, destination, ...chargingStations.map(chargingStation => chargingStation.vertex)]
+    const edges: Edge[] = []; 
+
+    vertices.forEach(v1 => {
+        vertices.forEach(v2 => {
+            if (v1 !== v2) {
+                try { // This try catch is needed since if a path is impossible getShortestPath->dijkstra will throw an error
+                    edges.push({
+                        startVertex: v1,
+                        endVertex: v2,
+                        cost: getEnergyConsumptionOfTraversel(vehicle, getShortestPath(v1, v2))
+                    })
+                } catch(e) { /* Invalid Path */}
+            }
+        });
+    })
+
+    const newGraph: Graph = {
+        vertices,
+        edges
+    }
+
+    return dijkstra(newGraph, origin, destination)
 }
 
 // Sandbox
