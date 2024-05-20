@@ -1,4 +1,4 @@
-import { dijkstra } from "./dijkstra";
+import { dijkstra_modified } from "./dijkstra_modified";
 
 export type Vertex = {
     nickname?: string;
@@ -61,7 +61,7 @@ export async function myAlgorithm(
                     edges.push({
                         startVertex: v1,
                         endVertex: v2,
-                        cost: await getEnergyConsumptionOfTraversel(vehicle, await getShortestPath(v1, v2))
+                        cost: 0
                     })
                 } catch(e) { /* Invalid Path */}
             }
@@ -71,5 +71,5 @@ export async function myAlgorithm(
         edges
     }
 
-    return dijkstra(newGraph, origin, destination)
+    return dijkstra_modified(newGraph, origin, destination)
 }
