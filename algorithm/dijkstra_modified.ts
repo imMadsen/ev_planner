@@ -33,7 +33,7 @@ export function dijkstra_modified(graph: Graph, origin: Vertex, destination: Ver
         previous.set(vertex, undefined);
     }   
 
-    origin.batteryCapacity = 100;
+    origin.batteryCapacity = 10;
     origin.time = 0;
 
     dist.set(origin, 0);
@@ -55,15 +55,22 @@ export function dijkstra_modified(graph: Graph, origin: Vertex, destination: Ver
 
         if (!u) throw "Dijkstra was unable to find a valid path 🤡";
 
+        
         if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
         if (u === destination) break;
-        
+
         // Remove u from Q
         Q = Q.filter(i => i !== u)
+        console.log(u.nickname, dist.get(u))
 
         for (const v of neighbour(u)) {
-            const alt = dist.get(u)! + cost_between(u, v)
+            const cost = cost_between(u, v)
+            const alt = dist.get(u)! + cost
+            console.log("Checking", v.nickname, alt, "Subtracting", cost)
             if (alt < dist.get(v)!) {
+                v.batteryCapacity = u.batteryCapacity! - cost
+                console.log("Visited", v.nickname, alt)
+
                 dist.set(v, alt);
                 previous.set(v, u);
             }
