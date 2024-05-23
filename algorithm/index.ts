@@ -73,12 +73,10 @@ export async function myAlgorithm(
   for (const v1 of vertices)
     for (const v2 of vertices)
       if (v1 !== v2) {
-        try {
-          edges.push({
-            startVertex: v1,
-            endVertex: v2,
-          });
-        } catch {}
+        edges.push({
+          startVertex: v1,
+          endVertex: v2,
+        });
       }
 
   const dist = new Map<Vertex, number>();
