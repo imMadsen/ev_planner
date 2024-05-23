@@ -4,7 +4,7 @@ import {
   type Connector,
   type Edge,
   type Graph,
-  type Vehicle,
+  type VehicleModel,
   type Vertex,
 } from ".";
 import { dijkstra } from "./dijkstra";
@@ -43,7 +43,7 @@ async function getShortestPath(origin: Vertex, destination: Vertex) {
   return edges;
 }
 
-async function getEnergyConsumptionOfTraversel(vehicle: Vehicle, path: Edge[]) {
+async function getEnergyConsumptionOfTraversel(vehicle: VehicleModel, path: Edge[]) {
   let accumulated = 0;
   for (const edge of path) {
     accumulated += edge.cost;
@@ -52,7 +52,7 @@ async function getEnergyConsumptionOfTraversel(vehicle: Vehicle, path: Edge[]) {
   return accumulated;
 }
 
-function getTimeConsumptionOfTraversal(vehicle: Vehicle, path: Edge[]) {
+function getTimeConsumptionOfTraversal(vehicle: VehicleModel, path: Edge[]) {
   let accumulated = 0;
   for (const edge of path) {
     accumulated += edge.cost;
@@ -62,14 +62,14 @@ function getTimeConsumptionOfTraversal(vehicle: Vehicle, path: Edge[]) {
 }
 
 function getTimeConsumptionOfCharging(
-  vehicle: Vehicle,
+  vehicle: VehicleModel,
   connector: Connector,
   batteryState: number
 ) {
   return 0;
 }
 
-const vehicle: Vehicle = {
+const vehicle: VehicleModel = {
   batteryCapacity: 20,
   batteryState: 3,
 };

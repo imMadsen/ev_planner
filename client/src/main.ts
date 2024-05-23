@@ -1,5 +1,5 @@
 import { map, tileLayer } from "leaflet";
-import { ChargingStation, Edge, Vertex, myAlgorithm, type Vehicle } from "algorithm";
+import { ChargingStation, Edge, Vertex, myAlgorithm, type VehicleModel } from "algorithm";
 import { chargingStations as chargeMapChargingStations } from "./chargemap";
 import { coordsToLatLngs, decodeOSMGeometry } from "./utilities";
 import 'leaflet/dist/leaflet.css';
@@ -40,7 +40,7 @@ const nodes = decodeOSMGeometry("y}c{Igqs{@fgY`gRzkOxpU|uLbeDtd[q`HvpPgji@`~JicE
 //     };
 // }});
 
-const vehicle: Vehicle = {
+const vehicle: VehicleModel = {
     batteryCapacity: 100,
     batteryState: 10
 }
@@ -72,7 +72,7 @@ async function getShortestPath(origin: Vertex, destination: Vertex) {
     }
 }
 
-async function getTimeConsumptionOfTraversal(vehicle: Vehicle, path: Edge[]) {
+async function getTimeConsumptionOfTraversal(vehicle: VehicleModel, path: Edge[]) {
     return 1;
 }
 
