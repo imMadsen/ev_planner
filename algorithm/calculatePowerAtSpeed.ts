@@ -40,4 +40,3 @@ function energyPerKilometer(speed: number): number {
 // Example usage
 const speed = 100; // Speed in km/h
 const energyConsumed = energyPerKilometer(speed);
-console.log(`Energy consumed at ${speed} km/h for 1 kilometer: ${energyConsumed} kWh`);
