@@ -1,3 +1,5 @@
+import { findXForArea } from "./utilities";
+
 export type Vertex = {
   nickname?: string;
   batteryState?: number;
@@ -25,7 +27,7 @@ export type VehicleModel = {
 };
 
 export type Connector = {
-  expectedOutput: [number, number][];
+  output: [number, number][];
 };
 
 export type ChargingStation = {
@@ -34,7 +36,6 @@ export type ChargingStation = {
 };
 
 export async function myAlgorithm(
-  getShortestPath: (origin: Vertex, destination: Vertex) => Promise<Edge>,
   getEnergyConsumptionOfTraversel: (
     vehicle: VehicleModel,
     edge: Edge
@@ -57,71 +58,6 @@ export async function myAlgorithm(
     ];
   }
 
-  function getFastestConnector(
-    station: ChargingStation,
-    vehicle: VehicleModel,
-    startCapacity: number,
-    endCapacity: number
-  ): Connector | undefined {
-    let fastestConnector: Connector | undefined;
-    let minTime = Number.MAX_SAFE_INTEGER;
-
-    for (let connector of station.connectors) {
-      let chargeTime = getTimeToCharge(
-        vehicle,
-        connector,
-        startCapacity,
-        endCapacity,
-        0
-      );
-      if (chargeTime === undefined) {
-        return;
-      }
-      if (chargeTime < minTime) {
-        minTime = chargeTime;
-        fastestConnector = connector;
-      }
-    }
-
-    return fastestConnector;
-  }
-
-  function getTimeToCharge(
-    vehicle: VehicleModel,
-    connector: Connector,
-    startCapacity: number,
-    targetCapacity: number,
-    timeOfDay: number
-  ) {
-    let sum = 0;
-
-    for (let i = 1; i <= connector.expectedOutput.length - 1; i++) {
-      if (timeOfDay < connector.expectedOutput[i][0]) {
-        const l1_x = Math.max(timeOfDay, connector.expectedOutput[i - 1][0]);
-        const l2_x = connector.expectedOutput[i][0];
-
-        const delta =
-          (connector.expectedOutput[i - 1][1] -
-            connector.expectedOutput[i][1]) /
-          (connector.expectedOutput[i - 1][0] - connector.expectedOutput[i][0]);
-        const b_1 =
-          connector.expectedOutput[i - 1][1] +
-          (l1_x - connector.expectedOutput[i - 1][0]) * delta;
-        const b_2 =
-          connector.expectedOutput[i - 1][1] +
-          (l2_x - connector.expectedOutput[i - 1][0]) * delta;
-
-        const h = l2_x - l1_x;
-
-        sum += h * ((b_1 + b_2) / 2);
-
-        if (targetCapacity < sum + startCapacity) return l1_x;
-      }
-    }
-
-    return;
-  }
-
   // Create a new Graph that only represents distances between chargingStations, origin & destination
   const vertices = [
     origin,
@@ -141,7 +77,6 @@ export async function myAlgorithm(
           edges.push({
             startVertex: v1,
             endVertex: v2,
-            cost: getTimeToTraverse(await getShortestPath(v1, v2)),
           });
         } catch {}
       }
@@ -188,15 +123,16 @@ export async function myAlgorithm(
         (edge) => edge.startVertex === u && edge.endVertex === v
       )!;
 
-      let cost = Number.MAX_SAFE_INTEGER; // Set cost to infinity, assuming we are stuck.
+      let cost = Number.MAX_SAFE_INTEGER; // Set cost to infinity aka. assuming we are stuck.
       let batteryState;
+
       // Check if edge can be traversed without charging
       const energyConsumption = getEnergyConsumptionOfTraversel(vehicle, edge);
       if (energyConsumption < u.batteryState!) {
         cost = energyConsumption;
         batteryState = u.batteryState! - energyConsumption;
       } else {
-        // Check if at charging staiton
+        // Check if at a charging staiton
         const chargingStation = chargingStations.find(
           (chargingStation) => chargingStation.vertex === u
         );
@@ -205,23 +141,29 @@ export async function myAlgorithm(
           // Calculcate required amount to charge
           const energyCost = energyConsumption - u.batteryState!;
 
-          const fastestConnector = getFastestConnector(
-            chargingStation,
-            vehicle,
-            u.batteryState!,
-            energyCost
-          );
+          // Try to calculate the most optiomal charger
+          let connector: Connector | undefined;
+          let doneCharging = Number.MAX_SAFE_INTEGER;
+          for (let _connector of chargingStation.connectors) {
+            let _doneCharging = findXForArea(
+              _connector.output,
+              u.time!,
+              energyCost - u.batteryState!
+            );
+            
+            if (_doneCharging === undefined) {
+              continue;
+            }
 
-          const timeToCharge = getTimeToCharge(
-            vehicle,
-            fastestConnector!,
-            u.batteryState || 0,
-            energyCost,
-            0
-          );
-
-          if (timeToCharge) {
-            cost = getTimeToTraverse(edge) + timeToCharge;
+            if (_doneCharging < doneCharging) {
+              doneCharging = _doneCharging;
+              connector = _connector;
+            }
+          }
+          
+          // Check if a connector was found, if so use it
+          if (connector !== undefined) {
+            cost = getTimeToTraverse(edge) + doneCharging - u.time!;
             batteryState = 0;
           }
         }
@@ -229,7 +171,8 @@ export async function myAlgorithm(
 
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
-        (v.batteryState = batteryState), (v.time = u.time! + cost);
+        v.batteryState = batteryState;
+        v.time = u.time! + cost;
 
         dist.set(v, alt);
         previous.set(v, u);

@@ -8,30 +8,39 @@ import {
 } from ".";
 import { dijkstra } from "./dijkstra";
 
-async function getShortestPath(origin: Vertex, destination: Vertex): Promise<Edge> {
+function getShortestPath(origin: Vertex, destination: Vertex): Edge {
   const edges: Edge[] = [];
-  const vertices = dijkstra(myGraph, origin, destination);
-  for (let i = 1; i < vertices.length; i++) {
-    edges.push(
-      myGraph.edges.find(
-        (v) => v.startVertex === vertices[i - 1] && v.endVertex === vertices[i]
-      )!
-    );
-  }
+
+  try {
+    const vertices = dijkstra(myGraph, origin, destination);
+    for (let i = 1; i < vertices.length; i++) {
+      edges.push(
+        myGraph.edges.find(
+          (v) => v.startVertex === vertices[i - 1] && v.endVertex === vertices[i]
+        )!
+      );
+    }
+  
+    return {
+      startVertex: origin,
+      endVertex: destination,
+      cost: edges.reduce((acc, edge) => edge.cost! + acc, 0)
+    };
+  } catch(e) {/* Legendary error handling */}
 
   return {
     startVertex: origin,
     endVertex: destination,
-    cost: edges.reduce((acc, edge) => edge.cost! + acc, 0)
-  };
+    cost: Number.MAX_SAFE_INTEGER
+  }; 
 }
 
 function getEnergyConsumptionOfTraversel(vehicle: VehicleModel, edge: Edge) {
-  return edge.cost!
+  return getTimeToTraverse(getShortestPath(edge.startVertex, edge.endVertex))
 }
 
 function getTimeToTraverse(edge: Edge) {
-  return edge.cost!
+  return getShortestPath(edge.startVertex, edge.endVertex).cost!
 }
 
 const vertices: Vertex[] = [
@@ -64,13 +73,12 @@ const chargingStations: ChargingStation[] = [
   {
     vertex: myGraph.vertices.find((vertex) => vertex.nickname === "D")!,
     connectors: [{
-      expectedOutput: new Array(100).fill(null).map((_, i) => ([i, 2]))
+      output: new Array(100).fill(null).map((_, i) => ([i, 2]))
     }],
   }
 ];
 
 console.log(await myAlgorithm(
-  getShortestPath,
   getEnergyConsumptionOfTraversel,
   getTimeToTraverse,
   origin,
