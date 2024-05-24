@@ -16,7 +16,7 @@ type Speed = number;
 type Height = number;
 type Distance = number;
 
-function ev_energy(
+export function ev_energy(
     ms: Speed,
     last_ms: Speed,
     delta_h: Height,
@@ -67,4 +67,3 @@ const edge_dist: Distance = 5000; // Example distance in meters
 const edge_radius: number = 50; // Example edge radius in meters
 
 const energyConsumed = ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
-console.log(`Energy consumed: ${energyConsumed} Wh`);

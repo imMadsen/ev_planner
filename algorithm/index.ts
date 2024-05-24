@@ -4,6 +4,7 @@ export type Vertex = {
   nickname?: string;
   batteryState?: number;
   time?: number;
+  debug?: any;
 };
 
 export type Edge = {
@@ -37,10 +38,9 @@ export type ChargingStation = {
 
 export async function myAlgorithm(
   getEnergyConsumptionOfTraversel: (
-    vehicle: VehicleModel,
     edge: Edge
-  ) => number,
-  getTimeToTraverse: (edge: Edge) => number,
+  ) => Promise<number>,
+  getTimeToTraverse: (edge: Edge) => Promise<number>,
   origin: Vertex,
   destination: Vertex,
   vehicle: VehicleModel,
@@ -123,9 +123,10 @@ export async function myAlgorithm(
 
       let cost = Number.MAX_SAFE_INTEGER; // Set cost to infinity aka. assuming we are stuck.
       let batteryState;
+      let debug;
 
       // Check if edge can be traversed without charging
-      const energyConsumption = getEnergyConsumptionOfTraversel(vehicle, edge);
+      const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
       if (energyConsumption < u.batteryState!) {
         cost = energyConsumption;
         batteryState = u.batteryState! - energyConsumption;
@@ -137,7 +138,7 @@ export async function myAlgorithm(
 
         if (chargingStation !== undefined) {
           // Calculcate required amount to charge
-          const energyCost = energyConsumption - u.batteryState!;
+          const energyNeeded = energyConsumption - u.batteryState!;
 
           // Try to calculate the most optiomal charger
           let connector: Connector | undefined;
@@ -146,7 +147,7 @@ export async function myAlgorithm(
             let _doneCharging = findXForArea(
               _connector.output,
               u.time!,
-              energyCost - u.batteryState!
+              energyNeeded
             );
             
             if (_doneCharging === undefined) {
@@ -161,8 +162,10 @@ export async function myAlgorithm(
           
           // Check if a connector was found, if so use it
           if (connector !== undefined) {
-            cost = getTimeToTraverse(edge) + doneCharging - u.time!;
+            const traverseTime = await getTimeToTraverse(edge);
+            cost =  traverseTime + doneCharging - u.time!;
             batteryState = 0;
+            debug = JSON.stringify({ energyNeeded: energyNeeded, toTraverse: energyConsumption, traverseTime: traverseTime })
           }
         }
       }
@@ -170,7 +173,8 @@ export async function myAlgorithm(
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
         v.batteryState = batteryState;
-        v.time = u.time! + cost;
+        v.time = u.time! + cost;  
+        u.debug = debug
 
         dist.set(v, alt);
         previous.set(v, u);

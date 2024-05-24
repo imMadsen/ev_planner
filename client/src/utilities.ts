@@ -106,7 +106,7 @@ export async function getRouteData(latStart:number, lngStart: number, latEnd:num
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log(data)
+
     // Check if the route is valid
     if (data.code !== 'Ok') {
       throw new Error(`Error in route response: ${data.message}`);

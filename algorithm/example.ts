@@ -35,11 +35,11 @@ function getShortestPath(origin: Vertex, destination: Vertex): Edge {
   }; 
 }
 
-function getEnergyConsumptionOfTraversel(vehicle: VehicleModel, edge: Edge) {
+async function getEnergyConsumptionOfTraversel(edge: Edge) {
   return getTimeToTraverse(getShortestPath(edge.startVertex, edge.endVertex))
 }
 
-function getTimeToTraverse(edge: Edge) {
+async function getTimeToTraverse(edge: Edge) {
   return getShortestPath(edge.startVertex, edge.endVertex).cost!
 }
 
