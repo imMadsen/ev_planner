@@ -4,7 +4,6 @@ export type Vertex = {
   nickname?: string;
   batteryState?: number;
   time?: number;
-  debug?: any;
 };
 
 export type Edge = {
@@ -20,12 +19,16 @@ export type Graph = {
 
 export type Path = {
   edges: Edge[];
-  batteryState: number;
 };
 
 export type VehicleModel = {
   batteryCapacity: number;
 };
+
+export type Vehicle = {
+  model: VehicleModel
+  batteryState?: number;
+}
 
 export type Connector = {
   output: [number, number][];
@@ -36,6 +39,8 @@ export type ChargingStation = {
   connectors: Connector[];
 };
 
+let ab = 0;
+
 export async function myAlgorithm(
   getEnergyConsumptionOfTraversel: (
     edge: Edge
@@ -43,9 +48,8 @@ export async function myAlgorithm(
   getTimeToTraverse: (edge: Edge) => Promise<number>,
   origin: Vertex,
   destination: Vertex,
-  vehicle: VehicleModel,
+  vehicle: Vehicle,
   chargingStations: ChargingStation[],
-  batteryState: number,
   startTime: number
 ) {
   function getNeighbours(u: Vertex, graph: Graph): Vertex[] {
@@ -87,7 +91,7 @@ export async function myAlgorithm(
     previous.set(vertex, undefined);
   }
 
-  origin.batteryState = batteryState;
+  origin.batteryState = vehicle.batteryState;
   origin.time = startTime;
 
   dist.set(origin, 0);
@@ -123,7 +127,6 @@ export async function myAlgorithm(
 
       let cost = Number.MAX_SAFE_INTEGER; // Set cost to infinity aka. assuming we are stuck.
       let batteryState;
-      let debug;
 
       // Check if edge can be traversed without charging
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
@@ -136,36 +139,40 @@ export async function myAlgorithm(
           (chargingStation) => chargingStation.vertex === u
         );
 
+        ab++
+
         if (chargingStation !== undefined) {
           // Calculcate required amount to charge
           const energyNeeded = energyConsumption - u.batteryState!;
 
-          // Try to calculate the most optiomal charger
-          let connector: Connector | undefined;
-          let doneCharging = Number.MAX_SAFE_INTEGER;
-          for (let _connector of chargingStation.connectors) {
-            let _doneCharging = findXForArea(
-              _connector.output,
-              u.time!,
-              energyNeeded
-            );
-            
-            if (_doneCharging === undefined) {
-              continue;
+          // Make sure the vehicle can store that much energy
+          if (energyNeeded <= vehicle.model.batteryCapacity) {
+            // Try to calculate the most optimal charger
+            let connector: Connector | undefined;
+            let doneCharging = Number.MAX_SAFE_INTEGER;
+            for (let _connector of chargingStation.connectors) {
+              let _doneCharging = findXForArea(
+                _connector.output,
+                u.time!,
+                energyNeeded
+              );
+
+              if (_doneCharging === undefined) {
+                continue;
+              }
+
+              if (_doneCharging < doneCharging) {
+                doneCharging = _doneCharging;
+                connector = _connector;
+              }
             }
 
-            if (_doneCharging < doneCharging) {
-              doneCharging = _doneCharging;
-              connector = _connector;
+            // Check if a connector was found, if so use it
+            if (connector !== undefined) {
+              const traverseTime = await getTimeToTraverse(edge);
+              cost = traverseTime + doneCharging - u.time!;
+              batteryState = 0;
             }
-          }
-          
-          // Check if a connector was found, if so use it
-          if (connector !== undefined) {
-            const traverseTime = await getTimeToTraverse(edge);
-            cost =  traverseTime + doneCharging - u.time!;
-            batteryState = 0;
-            debug = JSON.stringify({ energyNeeded: energyNeeded, toTraverse: energyConsumption, traverseTime: traverseTime })
           }
         }
       }
@@ -173,8 +180,7 @@ export async function myAlgorithm(
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
         v.batteryState = batteryState;
-        v.time = u.time! + cost;  
-        u.debug = debug
+        v.time = u.time! + cost;
 
         dist.set(v, alt);
         previous.set(v, u);
@@ -190,6 +196,8 @@ export async function myAlgorithm(
   }
 
   S.push(origin);
+
+  console.log(ab)
 
   return S.reverse();
 }

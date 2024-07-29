@@ -1,8 +1,9 @@
-import { circleMarker, geoJson, map, tileLayer } from "leaflet";
+                          import { circleMarker, geoJson, map, tileLayer } from "leaflet";
 import {
   ChargingStation,
   Connector,
   Edge,
+  Vehicle,
   Vertex,
   myAlgorithm,
   type VehicleModel,
@@ -211,20 +212,23 @@ vertexToLatLng.set(origin, { lat: 57.732561, lng: 10.582929 });
 vertexToLatLng.set(destination, { lat: 56.41570689232712, lng: 10.074417477174261 });
 
 // Create the Initialization for the algorithm
-const vehicleModel = {
-  batteryCapacity: 103 * 1000, // 103 kWh
-} as VehicleModel;
+// Tesla Model 3
+const tesla_model_3: VehicleModel = {
+  batteryCapacity: 60 * 1000, // 60 kWh
+}
 
-const batteryState = 50 * 1000; // 50 kWh
+const vehicle: Vehicle = {
+  model: tesla_model_3,
+  batteryState: 60 * 1000, // 50 kWh,
+};
 
 const result = await myAlgorithm(
     getEnergyConsumptionOfTraversel,
     getTimeToTraverse,
     origin,
     destination,
-    vehicleModel,
+    vehicle,
     chargingStations,
-    batteryState,
     0
   )
 
