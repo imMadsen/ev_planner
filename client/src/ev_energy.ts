@@ -1,4 +1,4 @@
-const speedyfactor = 1.0; // Cannot be zero!
+// const speedyfactor = 1.0; // Cannot be zero! (Why is this never used?)
 
 // EV Physical model
 const ev_mass = 1785; // 1715+70
@@ -60,10 +60,10 @@ export function ev_energy(
 }
 
 // Example usage
-const ms: Speed = 30; // Example speed in meters per second
-const last_ms: Speed = 30; // Example last speed in meters per second
-const delta_h: Height = 0; // Example height change in meters
-const edge_dist: Distance = 5000; // Example distance in meters
-const edge_radius: number = 50; // Example edge radius in meters
+// const ms: Speed = 30; // Example speed in meters per second
+// const last_ms: Speed = 30; // Example last speed in meters per second
+// const delta_h: Height = 0; // Example height change in meters
+// const edge_dist: Distance = 5000; // Example distance in meters
+// const edge_radius: number = 50; // Example edge radius in meters
 
-const energyConsumed = ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
+// const energyConsumed = ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);

@@ -39,8 +39,6 @@ export type ChargingStation = {
   connectors: Connector[];
 };
 
-let ab = 0;
-
 export async function myAlgorithm(
   getEnergyConsumptionOfTraversel: (
     edge: Edge
@@ -52,6 +50,8 @@ export async function myAlgorithm(
   chargingStations: ChargingStation[],
   startTime: number
 ) {
+  let ab = 0;
+
   function getNeighbours(u: Vertex, graph: Graph): Vertex[] {
     return [
       ...new Set(
@@ -120,6 +120,8 @@ export async function myAlgorithm(
     Q = Q.filter((i) => i !== u);
 
     for (const v of getNeighbours(u, graph)) {
+      ab++
+
       // Get the edge between our current node (u) and neighbour (v)
       const edge = graph.edges.find(
         (edge) => edge.startVertex === u && edge.endVertex === v
@@ -139,7 +141,6 @@ export async function myAlgorithm(
           (chargingStation) => chargingStation.vertex === u
         );
 
-        ab++
 
         if (chargingStation !== undefined) {
           // Calculcate required amount to charge

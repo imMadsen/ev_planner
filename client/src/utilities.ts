@@ -21,7 +21,7 @@ export function coordsToLatLngs(coords: number[][], levelsDeep = 0, _coordsToLat
 	return latlngs;
 }
 
-export function decodeOSMGeometry(encoded: string, mul: number) {
+export function decodeOSMGeometry(encoded: string, mul: number): number[][] {
   //precision
   const inv = 1.0 / mul;
   const decoded = [];

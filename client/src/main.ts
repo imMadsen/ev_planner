@@ -1,6 +1,4 @@
-                          import { circleMarker, geoJson, map, tileLayer } from "leaflet";
 import {
-  ChargingStation,
   Connector,
   Edge,
   Vehicle,
@@ -10,18 +8,24 @@ import {
 } from "algorithm";
 import {
   chargingStations as chargeMapChargingStations,
-  ChargingStation as ChargeMapStation,
 } from "./chargemap";
 import {
   coordsToLatLngs,
   decodeOSMGeometry,
-  distancePointToLineSegmentInKM,
   getRouteData,
 } from "./utilities";
 import { OSRMResponse } from "./osrm.types";
 import { ev_energy } from "./ev_energy";
+import { prune_distance } from "./prune/prune_distance";
+
+import { circleMarker, geoJson, map, tileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
+
+type LatLng = {
+  lat: number;
+  lng: number;
+};
 
 async function getEnergyConsumptionOfTraversel(edge: Edge) {
   const ms = 36; // 130 km/h
@@ -34,13 +38,14 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
   return ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
 }
 
-type LatLng = {
-  lat: number;
-  lng: number;
-};
+async function getTimeToTraverse(edge: Edge) {
+  return (
+    (await getShortestPath(edge.startVertex, edge.endVertex)).cost! /
+    36 /* 130 km/h */
+  );
+}
 
 const vertexToLatLng = new Map<Vertex, LatLng>();
-
 const routeCache = new Map<string, Edge>();
 async function getShortestPath(
   origin: Vertex,
@@ -74,14 +79,9 @@ async function getShortestPath(
   return edge;
 }
 
-async function getTimeToTraverse(edge: Edge) {
-  return (
-    (await getShortestPath(edge.startVertex, edge.endVertex)).cost! /
-    36 /* 130 km/h */
-  );
-}
 
 // Initialize Map
+
 const myMap = map("map").setView([56.511984, 10.067244], 13); // Set initial view
 
 tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -89,12 +89,15 @@ tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 }).addTo(myMap);
 
+const origin = { lat: 57.72374620954098, lng: 10.559437867072692 }
+const destination = { lat: 53.95479334684554, lng: 9.719076450821097 }
+
 // Initialize Route
 const data: OSRMResponse = await getRouteData(
-  57.732561,
-  10.582929,
-  56.41570689232712,
-  10.074417477174261
+  origin.lat,
+  origin.lng,
+  destination.lat,
+  destination.lng
 );
 
 let verticies: number[][] = [];
@@ -134,45 +137,21 @@ const geojson = geoJson(json as any, {
 
 geojson.addTo(myMap);
 
-// Prune Charging Stations
-// Gets the nearest charging stations by projecting to the Edges
-const prunedChargingStations: ChargeMapStation[] = [];
+// Prune the charging stations
+const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, 1)
 
-let previousNode: number[] | undefined;
-const maxRange = 1; // Maximum distance from the line segment in km
-verticies.forEach((node, index) => {
-  const [lng1, lat1] = node;
+// Map the ChargeMap Charging Stations to ChargingStation Interface
 
-  if (previousNode !== undefined && index > 0) {
-    const [lng2, lat2] = previousNode;
-    chargeMapChargingStations.forEach((chargingStation) => {
-      const dist = distancePointToLineSegmentInKM(
-        chargingStation.lat,
-        chargingStation.lng,
-        lat1,
-        lng1,
-        lat2,
-        lng2
-      );
-      if (dist <= maxRange) {
-        prunedChargingStations.push(chargingStation);
-      }
-    });
-  }
+// Create a generic Connector (since charge map does not contian data)
 
-  previousNode = node;
-});
-
-console.log("Prunded", prunedChargingStations.length, "charging stations");
-
-// Add Pruned Charging Stations to map
 const genericConnector = {
   output: new Array(10000)
     .fill(null)
     .map((_, i) => [i, 300 /* 300 kWs */]),
 } as Connector;
 
-const chargingStations: ChargingStation[] = prunedChargingStations.map(
+
+const chargingStations = prunedChargingStations.map(
   (chargingStation, i) => {
     const vertex = { nickname: "Charging Station " + i } as Vertex;
     vertexToLatLng.set(vertex, {
@@ -205,43 +184,59 @@ chargeMapChargingStations.forEach((chargingStation) => {
 myMap.fitBounds(coordsToLatLngs(verticies));
 
 // Create the Origin and Destination
-const origin = { nickname: "Origin" } as Vertex;
-const destination = { nickname: "Destination" } as Vertex;
+const originVertex = { nickname: "Origin" } as Vertex;
+const destinationVertex = { nickname: "Destination" } as Vertex;
 
-vertexToLatLng.set(origin, { lat: 57.732561, lng: 10.582929 });
-vertexToLatLng.set(destination, { lat: 56.41570689232712, lng: 10.074417477174261 });
+vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
+vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
 
 // Create the Initialization for the algorithm
 // Tesla Model 3
+const debug_scale = .5;
+
 const tesla_model_3: VehicleModel = {
-  batteryCapacity: 60 * 1000, // 60 kWh
+  batteryCapacity: 60 * 1000 * debug_scale, // 60 kWh
 }
 
 const vehicle: Vehicle = {
   model: tesla_model_3,
-  batteryState: 60 * 1000, // 50 kWh,
+  batteryState: 60 * 1000 * debug_scale, // 60 kWh,
 };
 
-const result = await myAlgorithm(
-    getEnergyConsumptionOfTraversel,
-    getTimeToTraverse,
-    origin,
-    destination,
-    vehicle,
-    chargingStations,
-    0
-  )
+async function exe() {
+  const startTime = new Date();
+  
+  const result = await myAlgorithm(
+      getEnergyConsumptionOfTraversel,
+      getTimeToTraverse,
+      originVertex,
+      destinationVertex,
+      vehicle,
+      chargingStations,
+      0
+    )
+  
+  const endTime = new Date();
+  
+  console.log("Calcuations took", endTime.getTime() - startTime.getTime())
 
-result.forEach(a => {
-  const { lat, lng } = vertexToLatLng.get(a)!
-  circleMarker([lat, lng], {
-    color: "green",
-    fillColor: "#f03",
-    fillOpacity: 0.5,
-    radius: 5, // radius of the circle in pixels
-  })
-    .addTo(myMap)
-    .on("click", () => console.log(a));
-})
 
-console.log(result)
+  console.log(result)
+}
+
+await exe();
+await exe();
+
+// result.forEach(a => {
+//   const { lat, lng } = vertexToLatLng.get(a)!
+//   circleMarker([lat, lng], {
+//     color: "green",
+//     fillColor: "#f03",
+//     fillOpacity: 0.5,
+//     radius: 5, // radius of the circle in pixels
+//   })
+//     .addTo(myMap)
+//     .on("click", () => console.log(a));
+// })
+
+// console.log(result)
