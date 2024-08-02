@@ -78,13 +78,13 @@ const chargingStations: ChargingStation[] = [
   }
 ];
 
-console.log(await myAlgorithm(
-  getEnergyConsumptionOfTraversel,
-  getTimeToTraverse,
-  origin,
-  destination,
-  vehicle,
-  chargingStations,
-  30,
-  0
-));
+// console.log(await myAlgorithm(
+//   getEnergyConsumptionOfTraversel,
+//   getTimeToTraverse,
+//   origin,
+//   destination,
+//   vehicle,
+//   chargingStations,
+//   30,
+//   0
+// ));

@@ -1,4 +1,5 @@
 import {
+  ChargingStation,
   Connector,
   Edge,
   Vehicle,
@@ -21,6 +22,7 @@ import { prune_distance } from "./prune/prune_distance";
 import { circleMarker, geoJson, map, tileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
+import { prune_k_nearest } from "./prune/prune_k_nearest";
 
 type LatLng = {
   lat: number;
@@ -46,7 +48,7 @@ async function getTimeToTraverse(edge: Edge) {
 }
 
 const vertexToLatLng = new Map<Vertex, LatLng>();
-const routeCache = new Map<string, Edge>();
+let routeCache = new Map<string, Edge>();
 async function getShortestPath(
   origin: Vertex,
   destination: Vertex
@@ -137,50 +139,6 @@ const geojson = geoJson(json as any, {
 
 geojson.addTo(myMap);
 
-// Prune the charging stations
-const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, 1)
-
-// Map the ChargeMap Charging Stations to ChargingStation Interface
-
-// Create a generic Connector (since charge map does not contian data)
-
-const genericConnector = {
-  output: new Array(10000)
-    .fill(null)
-    .map((_, i) => [i, 300 /* 300 kWs */]),
-} as Connector;
-
-
-const chargingStations = prunedChargingStations.map(
-  (chargingStation, i) => {
-    const vertex = { nickname: "Charging Station " + i } as Vertex;
-    vertexToLatLng.set(vertex, {
-      lat: chargingStation.lat,
-      lng: chargingStation.lng,
-    });
-
-    return {
-      connectors: [genericConnector],
-      vertex: vertex,
-    };
-  }
-);
-
-// Draw pruned Charging Stations
-chargeMapChargingStations.forEach((chargingStation) => {
-  const { lng, lat } = chargingStation;
-  const isMarked = prunedChargingStations.includes(chargingStation);
-
-  circleMarker([lat, lng], {
-    color: isMarked ? "red" : "blue",
-    fillColor: "#f03",
-    fillOpacity: 0.5,
-    radius: isMarked ? 5 : 1, // radius of the circle in pixels
-  })
-    .addTo(myMap)
-    .on("click", () => console.log(chargingStation.pool.charging_connectors));
-});
-
 myMap.fitBounds(coordsToLatLngs(verticies));
 
 // Create the Origin and Destination
@@ -203,10 +161,12 @@ const vehicle: Vehicle = {
   batteryState: 60 * 1000 * debug_scale, // 60 kWh,
 };
 
-async function exe() {
+async function experiment(chargingStations: ChargingStation[]) {
   const startTime = new Date();
-  
-  const result = await myAlgorithm(
+
+  console.log("Experiment started at", startTime.getTime())
+
+  await myAlgorithm(
       getEnergyConsumptionOfTraversel,
       getTimeToTraverse,
       originVertex,
@@ -216,27 +176,132 @@ async function exe() {
       0
     )
   
-  const endTime = new Date();
-  
-  console.log("Calcuations took", endTime.getTime() - startTime.getTime())
+    const endTime = new Date();
 
+    console.log("Experiment ended at", startTime.getTime())
 
-  console.log(result)
+    console.log("Calcuations took", endTime.getTime() - startTime.getTime())
 }
 
-await exe();
-await exe();
+// Experiment "prune_distance"
 
-// result.forEach(a => {
-//   const { lat, lng } = vertexToLatLng.get(a)!
+for (const d of [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]) {
+
+  // Prune the charging stations
+  const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, d)
+
+  // Create a generic Connector (since charge map does not contian data)
+  const genericConnector = {
+    output: new Array(10000)
+    .fill(null)
+    .map((_, i) => [i, 300 /* 300 kWs */]),
+  } as Connector;
+
+  // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
+  const chargingStations = prunedChargingStations.map(
+    (chargingStation, i) => {
+      const vertex = { nickname: "Charging Station " + i } as Vertex;
+      vertexToLatLng.set(vertex, {
+        lat: chargingStation.lat,
+        lng: chargingStation.lng,
+      });
+
+      return {
+        connectors: [genericConnector],
+        vertex: vertex,
+      };
+    }
+  );
+
+  console.log("Running experiment with prune_distance (cache = no), d = ", d)
+
+  routeCache = new Map<string, Edge>();
+
+  await experiment(chargingStations)
+
+  console.log("Running experiment with prune_distance (cache = yes), d = ", d)
+
+  await experiment(chargingStations)
+}
+
+// Experiment "prune_k_nearest"
+
+for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) {
+
+  // Prune the charging stations
+  const prunedChargingStations = prune_k_nearest(chargeMapChargingStations, verticies, k)
+
+  // Create a generic Connector (since charge map does not contian data)
+  const genericConnector = {
+    output: new Array(10000)
+    .fill(null)
+    .map((_, i) => [i, 300 /* 300 kWs */]),
+  } as Connector;
+
+  // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
+  const chargingStations = prunedChargingStations.map(
+    (chargingStation, i) => {
+      const vertex = { nickname: "Charging Station " + i } as Vertex;
+      vertexToLatLng.set(vertex, {
+        lat: chargingStation.lat,
+        lng: chargingStation.lng,
+      });
+
+      return {
+        connectors: [genericConnector],
+        vertex: vertex,
+      };
+    }
+  );
+
+  console.log("Running experiment with prune_distance (cache = no), k = ", k)
+
+  routeCache = new Map<string, Edge>();
+
+  await experiment(chargingStations)
+
+  console.log("Running experiment with prune_distance (cache = yes), k = ", k)
+
+  await experiment(chargingStations)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Draw Charging Stations
+
+// chargeMapChargingStations.forEach((chargingStation) => {
+//   const { lng, lat } = chargingStation;
+//   const isMarked = prunedChargingStations.includes(chargingStation);
+
 //   circleMarker([lat, lng], {
-//     color: "green",
+//     color: isMarked ? "red" : "blue",
 //     fillColor: "#f03",
 //     fillOpacity: 0.5,
-//     radius: 5, // radius of the circle in pixels
+//     radius: isMarked ? 5 : 1, // radius of the circle in pixels
 //   })
 //     .addTo(myMap)
-//     .on("click", () => console.log(a));
-// })
-
-// console.log(result)
+// });

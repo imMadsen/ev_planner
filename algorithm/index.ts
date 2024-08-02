@@ -50,7 +50,9 @@ export async function myAlgorithm(
   chargingStations: ChargingStation[],
   startTime: number
 ) {
-  let ab = 0;
+  let total_visits = 0;
+
+  console.log("Algorithm stated with a chargingStations count of ", chargingStations.length)
 
   function getNeighbours(u: Vertex, graph: Graph): Vertex[] {
     return [
@@ -120,7 +122,7 @@ export async function myAlgorithm(
     Q = Q.filter((i) => i !== u);
 
     for (const v of getNeighbours(u, graph)) {
-      ab++
+      total_visits++
 
       // Get the edge between our current node (u) and neighbour (v)
       const edge = graph.edges.find(
@@ -198,7 +200,7 @@ export async function myAlgorithm(
 
   S.push(origin);
 
-  console.log(ab)
+  console.log("Algorithm finished with a total visits of ", total_visits)
 
   return S.reverse();
 }

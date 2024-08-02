@@ -46,8 +46,8 @@ const connectors: Connector[] = [{
     }
   ];
 
-// Variables
-const distance = 100; // km
-// Find and print the optimal driving speed
-const optimalSpeed = findOptimalSpeed(distance, connectors[0], connectors[0], 0);
-console.log(`The optimal driving speed is approximately ${optimalSpeed.toFixed(2)} ms/s`);
+// // Variables
+// const distance = 100; // km
+// // Find and print the optimal driving speed
+// const optimalSpeed = findOptimalSpeed(distance, connectors[0], connectors[0], 0);
+// console.log(`The optimal driving speed is approximately ${optimalSpeed.toFixed(2)} ms/s`);

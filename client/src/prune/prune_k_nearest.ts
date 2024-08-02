@@ -3,7 +3,7 @@ import {
   distancePointToLineSegment,
 } from "../utilities";
 
-export function k_nearest(chargingStations: ChargingStation[], verticies: number[][], k: number) {
+export function prune_k_nearest(chargingStations: ChargingStation[], verticies: number[][], k: number) {
   let prunedChargingStations: ChargingStation[] = [];
   // Using a Subset for dev purposes
 
