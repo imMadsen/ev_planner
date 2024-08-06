@@ -23,6 +23,7 @@ export type Path = {
 };
 
 export type VehicleModel = {
+  charging_curve: [][];
   battery_capacity_kw: number;
 };
 
