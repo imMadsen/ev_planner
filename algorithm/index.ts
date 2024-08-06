@@ -11,6 +11,7 @@ export type Edge = {
   start_vertex: Vertex;
   end_vertex: Vertex;
   cost?: number;
+  //distance: number; //meters
 };
 
 export type Graph = {
@@ -23,7 +24,7 @@ export type Path = {
 };
 
 export type VehicleModel = {
-  charging_curve: [][];
+  charging_curve: number[][];
   battery_capacity_kw: number;
 };
 
