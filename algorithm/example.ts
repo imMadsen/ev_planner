@@ -16,31 +16,31 @@ function getShortestPath(origin: Vertex, destination: Vertex): Edge {
     for (let i = 1; i < vertices.length; i++) {
       edges.push(
         myGraph.edges.find(
-          (v) => v.startVertex === vertices[i - 1] && v.endVertex === vertices[i]
+          (v) => v.start_vertex === vertices[i - 1] && v.end_vertex === vertices[i]
         )!
       );
     }
   
     return {
-      startVertex: origin,
-      endVertex: destination,
+      start_vertex: origin,
+      end_vertex: destination,
       cost: edges.reduce((acc, edge) => edge.cost! + acc, 0)
     };
   } catch(e) {/* Legendary error handling */}
 
   return {
-    startVertex: origin,
-    endVertex: destination,
+    start_vertex: origin,
+    end_vertex: destination,
     cost: Number.MAX_SAFE_INTEGER
   }; 
 }
 
 async function getEnergyConsumptionOfTraversel(edge: Edge) {
-  return getTimeToTraverse(getShortestPath(edge.startVertex, edge.endVertex))
+  return getTimeToTraverse(getShortestPath(edge.start_vertex, edge.end_vertex))
 }
 
 async function getTimeToTraverse(edge: Edge) {
-  return getShortestPath(edge.startVertex, edge.endVertex).cost!
+  return getShortestPath(edge.start_vertex, edge.end_vertex).cost!
 }
 
 const vertices: Vertex[] = [
@@ -53,17 +53,17 @@ const vertices: Vertex[] = [
 const myGraph: Graph = {
   vertices,
   edges: [
-    { cost: 10, startVertex: vertices[0], endVertex: vertices[1] },
-    { cost: 20, startVertex: vertices[0], endVertex: vertices[3] },
-    { cost: 30, startVertex: vertices[1], endVertex: vertices[2] },
-    { cost: 200, startVertex: vertices[3], endVertex: vertices[2] },
-    { cost: 10, startVertex: vertices[3], endVertex: vertices[1] },
+    { cost: 10, start_vertex: vertices[0], end_vertex: vertices[1] },
+    { cost: 20, start_vertex: vertices[0], end_vertex: vertices[3] },
+    { cost: 30, start_vertex: vertices[1], end_vertex: vertices[2] },
+    { cost: 200, start_vertex: vertices[3], end_vertex: vertices[2] },
+    { cost: 10, start_vertex: vertices[3], end_vertex: vertices[1] },
   ],
 };
 
 
 const vehicle: VehicleModel = {
-  batteryCapacity: 100
+  battery_capacity_kw: 100
 };
 
 const origin = myGraph.vertices.find((vertex) => vertex.nickname === "A")!;
@@ -73,7 +73,7 @@ const chargingStations: ChargingStation[] = [
   {
     vertex: myGraph.vertices.find((vertex) => vertex.nickname === "D")!,
     connectors: [{
-      output: new Array(100).fill(null).map((_, i) => ([i, 2]))
+      output_time_kw: new Array(100).fill(null).map((_, i) => ([i, 2]))
     }],
   }
 ];

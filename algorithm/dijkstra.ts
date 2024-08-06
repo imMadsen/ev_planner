@@ -2,12 +2,12 @@ import type { Graph, Vertex } from ".";
 
 export function dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
     function cost_between(u: Vertex, v: Vertex) {
-        const edge = graph.edges.find(edge => edge.startVertex === u && edge.endVertex === v)
+        const edge = graph.edges.find(edge => edge.start_vertex === u && edge.end_vertex === v)
         return edge ? edge.cost! : Number.MAX_SAFE_INTEGER
     }
 
     function neighbour(u: Vertex): Vertex[] {
-        return [...new Set(graph.edges.filter(edge => edge.startVertex === u).map((edge) => edge.endVertex))]
+        return [...new Set(graph.edges.filter(edge => edge.start_vertex === u).map((edge) => edge.end_vertex))]
     }
 
     const dist = new Map<Vertex, number>();

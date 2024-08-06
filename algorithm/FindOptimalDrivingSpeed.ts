@@ -6,7 +6,7 @@ import {ev_energy} from "../client/src/ev_energy"
 function totalTime(drivingSpeed: number, distance: number, connector: Connector, time: number): number {
     const drivingTime = distance / drivingSpeed;
     const energyRequired = ev_energy(drivingSpeed, drivingSpeed, 0, distance, 0);
-    const chargingTime = findXForArea(connector.output, 0, energyRequired)!
+    const chargingTime = findXForArea(connector.output_time_kw, 0, energyRequired)!
     return drivingTime + chargingTime;
 }
 
@@ -42,7 +42,7 @@ function findOptimalSpeed(distance: number, connectorA: Connector, connectorB: C
 }
 
 const connectors: Connector[] = [{
-        output: new Array(100).fill(null).map((_, i) => ([i, 2]))
+        output_time_kw: new Array(100).fill(null).map((_, i) => ([i, 2]))
     }
   ];
 

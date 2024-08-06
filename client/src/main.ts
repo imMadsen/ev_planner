@@ -29,11 +29,22 @@ type LatLng = {
   lng: number;
 };
 
+// Create a generic Connector (Note: Output is constant over time)
+function createGenericConnector(outputkWs: number) {
+  const genericConnector = {
+    output_time_kw: new Array(10000)
+      .fill(null)
+      .map((_, i) => [i, outputkWs]),
+  } as Connector;
+
+  return genericConnector;
+}
+
 async function getEnergyConsumptionOfTraversel(edge: Edge) {
   const ms = 36; // 130 km/h
   const last_ms = 0;
   const delta_h = 0;
-  const edge_dist = (await getShortestPath(edge.startVertex, edge.endVertex))
+  const edge_dist = (await getShortestPath(edge.start_vertex, edge.end_vertex))
     .cost!;
   const edge_radius = 0;
 
@@ -42,7 +53,7 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
 
 async function getTimeToTraverse(edge: Edge) {
   return (
-    (await getShortestPath(edge.startVertex, edge.endVertex)).cost! /
+    (await getShortestPath(edge.start_vertex, edge.end_vertex)).cost! /
     36 /* 130 km/h */
   );
 }
@@ -68,8 +79,8 @@ async function getShortestPath(
     lngDestination
   );
   const edge: Edge = {
-    startVertex: origin,
-    endVertex: destination,
+    start_vertex: origin,
+    end_vertex: destination,
     cost:
       data.routes.length > 0
         ? data.routes[0].distance
@@ -153,12 +164,12 @@ vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.l
 const debug_scale = .5;
 
 const tesla_model_3: VehicleModel = {
-  batteryCapacity: 60 * 1000 * debug_scale, // 60 kWh
+  battery_capacity_kw: 60 * 1000 * debug_scale, // 60 kWh
 }
 
 const vehicle: Vehicle = {
   model: tesla_model_3,
-  batteryState: 60 * 1000 * debug_scale, // 60 kWh,
+  battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
 };
 
 async function experiment(chargingStations: ChargingStation[]) {
@@ -167,20 +178,20 @@ async function experiment(chargingStations: ChargingStation[]) {
   console.log("Experiment started at", startTime.getTime())
 
   await myAlgorithm(
-      getEnergyConsumptionOfTraversel,
-      getTimeToTraverse,
-      originVertex,
-      destinationVertex,
-      vehicle,
-      chargingStations,
-      0
-    )
-  
-    const endTime = new Date();
+    getEnergyConsumptionOfTraversel,
+    getTimeToTraverse,
+    originVertex,
+    destinationVertex,
+    vehicle,
+    chargingStations,
+    0
+  )
 
-    console.log("Experiment ended at", startTime.getTime())
+  const endTime = new Date();
 
-    console.log("Calcuations took", endTime.getTime() - startTime.getTime())
+  console.log("Experiment ended at", startTime.getTime())
+
+  console.log("Calcuations took", endTime.getTime() - startTime.getTime())
 }
 
 // Experiment "prune_distance"
@@ -192,9 +203,9 @@ for (const d of [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]) {
 
   // Create a generic Connector (since charge map does not contian data)
   const genericConnector = {
-    output: new Array(10000)
-    .fill(null)
-    .map((_, i) => [i, 300 /* 300 kWs */]),
+    output_time_kw: new Array(10000)
+      .fill(null)
+      .map((_, i) => [i, 300 /* 300 kWs */]),
   } as Connector;
 
   // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
@@ -231,13 +242,6 @@ for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) {
   // Prune the charging stations
   const prunedChargingStations = prune_k_nearest(chargeMapChargingStations, verticies, k)
 
-  // Create a generic Connector (since charge map does not contian data)
-  const genericConnector = {
-    output: new Array(10000)
-    .fill(null)
-    .map((_, i) => [i, 300 /* 300 kWs */]),
-  } as Connector;
-
   // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
   const chargingStations = prunedChargingStations.map(
     (chargingStation, i) => {
@@ -248,7 +252,7 @@ for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) {
       });
 
       return {
-        connectors: [genericConnector],
+        connectors: chargingStation.pool.charging_connectors.map((output) => createGenericConnector(output.power_max)),
         vertex: vertex,
       };
     }
