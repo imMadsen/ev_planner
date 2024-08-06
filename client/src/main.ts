@@ -19,10 +19,9 @@ import { OSRMResponse } from "./osrm.types";
 import { ev_energy } from "./ev_energy";
 import { prune_distance } from "./prune/prune_distance";
 
-import { circleMarker, geoJson, map, tileLayer } from "leaflet";
+import { geoJson, map, tileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
-import { prune_k_nearest } from "./prune/prune_k_nearest";
 
 type LatLng = {
   lat: number;
@@ -152,27 +151,28 @@ geojson.addTo(myMap);
 
 myMap.fitBounds(coordsToLatLngs(verticies));
 
-// Create the Origin and Destination
-const originVertex = { nickname: "Origin" } as Vertex;
-const destinationVertex = { nickname: "Destination" } as Vertex;
-
-vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
-vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
-
 // Create the Initialization for the algorithm
 // Tesla Model 3
-const debug_scale = .5;
+const debug_scale = 1;
 
 const tesla_model_3: VehicleModel = {
   battery_capacity_kw: 60 * 1000 * debug_scale, // 60 kWh
 }
 
-const vehicle: Vehicle = {
-  model: tesla_model_3,
-  battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
-};
-
 async function experiment(chargingStations: ChargingStation[]) {
+  // Create the Origin and Destination
+  const originVertex = { nickname: "Origin" } as Vertex;
+  const destinationVertex = { nickname: "Destination" } as Vertex;
+
+  vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
+  vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
+
+  const vehicle: Vehicle = {
+    model: tesla_model_3,
+    battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
+  };
+
+
   const startTime = new Date();
 
   console.log("Experiment started at", startTime.getTime())
@@ -196,56 +196,16 @@ async function experiment(chargingStations: ChargingStation[]) {
 
 // Experiment "prune_distance"
 
-for (const d of [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]) {
+for (const d of [0.5, 4]) {
 
   // Prune the charging stations
   const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, d)
 
-  // Create a generic Connector (since charge map does not contian data)
-  const genericConnector = {
-    output_time_kw: new Array(10000)
-      .fill(null)
-      .map((_, i) => [i, 300 /* 300 kWs */]),
-  } as Connector;
 
   // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
   const chargingStations = prunedChargingStations.map(
     (chargingStation, i) => {
-      const vertex = { nickname: "Charging Station " + i } as Vertex;
-      vertexToLatLng.set(vertex, {
-        lat: chargingStation.lat,
-        lng: chargingStation.lng,
-      });
-
-      return {
-        connectors: [genericConnector],
-        vertex: vertex,
-      };
-    }
-  );
-
-  console.log("Running experiment with prune_distance (cache = no), d = ", d)
-
-  routeCache = new Map<string, Edge>();
-
-  await experiment(chargingStations)
-
-  console.log("Running experiment with prune_distance (cache = yes), d = ", d)
-
-  await experiment(chargingStations)
-}
-
-// Experiment "prune_k_nearest"
-
-for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) {
-
-  // Prune the charging stations
-  const prunedChargingStations = prune_k_nearest(chargeMapChargingStations, verticies, k)
-
-  // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
-  const chargingStations = prunedChargingStations.map(
-    (chargingStation, i) => {
-      const vertex = { nickname: "Charging Station " + i } as Vertex;
+      const vertex = { nickname: "Charging Station " + chargingStation.pool.id } as Vertex;
       vertexToLatLng.set(vertex, {
         lat: chargingStation.lat,
         lng: chargingStation.lng,
@@ -258,15 +218,17 @@ for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) {
     }
   );
 
-  console.log("Running experiment with prune_distance (cache = no), k = ", k)
+  console.log("Running experiment with prune_distance (cache = no), d = ", d)
 
   routeCache = new Map<string, Edge>();
 
   await experiment(chargingStations)
 
-  console.log("Running experiment with prune_distance (cache = yes), k = ", k)
+  console.log(chargingStations)
 
-  await experiment(chargingStations)
+  // console.log("Running experiment with prune_distance (cache = yes), d = ", d)
+
+  // await experiment(chargingStations)
 }
 
 

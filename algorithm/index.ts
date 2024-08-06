@@ -3,6 +3,7 @@ import { findXForArea } from "./utilities";
 export type Vertex = {
   nickname?: string;
   battery_state_kw?: number;
+  charging_station?: ChargingStation;
   time?: number;
 };
 
@@ -65,10 +66,13 @@ export async function myAlgorithm(
   }
 
   // Create a new Graph that only represents distances between chargingStations, origin & destination
-  const vertices = [
+  const vertices: Vertex[] = [
     origin,
     destination,
-    ...charging_stations.map((chargingStation) => chargingStation.vertex),
+    ...charging_stations.map((chargingStation) => {
+      chargingStation.vertex.charging_station = chargingStation;
+      return chargingStation.vertex
+    }),
   ];
   const edges: Edge[] = [];
 
