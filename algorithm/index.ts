@@ -2,9 +2,11 @@ import { findXForArea } from "./utilities";
 
 export type Vertex = {
   nickname?: string;
-  battery_state_kw?: number;
-  charging_station?: ChargingStation;
   time?: number;
+  battery_state_kw?: number;
+  energy_needed?: number;
+  energy_consumption?: number;
+  charging_station?: ChargingStation;
 };
 
 export type Edge = {
@@ -138,10 +140,15 @@ export async function myAlgorithm(
       let cost = Number.MAX_SAFE_INTEGER; // Set cost to infinity aka. assuming we are stuck.
       let batteryState;
 
-      // Check if edge can be traversed without charging
+      // Calculate the consumption of the edge
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
+
+      // Calculcate required amount to charge for traversal
+      const energyNeeded = energyConsumption - u.battery_state_kw!;
+
+      // Check if edge can be traversed without charging
       if (energyConsumption < u.battery_state_kw!) {
-        cost = energyConsumption;
+        cost = await getTimeToTraverse(edge);
         batteryState = u.battery_state_kw! - energyConsumption;
       } else {
         // Check if at a charging staiton
@@ -149,10 +156,7 @@ export async function myAlgorithm(
           (chargingStation) => chargingStation.vertex === u
         );
 
-
         if (chargingStation !== undefined) {
-          // Calculcate required amount to charge
-          const energyNeeded = energyConsumption - u.battery_state_kw!;
 
           // Make sure the vehicle can store that much energy
           if (energyNeeded <= vehicle.model.battery_capacity_kw) {
@@ -189,6 +193,8 @@ export async function myAlgorithm(
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
         v.battery_state_kw = batteryState;
+        v.energy_needed = energyNeeded;
+        v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
 
         dist.set(v, alt);

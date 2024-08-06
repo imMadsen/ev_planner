@@ -19,7 +19,7 @@ import { OSRMResponse } from "./osrm.types";
 import { ev_energy } from "./ev_energy";
 import { prune_distance } from "./prune/prune_distance";
 
-import { geoJson, map, tileLayer } from "leaflet";
+import { circleMarker, geoJson, map, tileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
 
@@ -153,7 +153,7 @@ myMap.fitBounds(coordsToLatLngs(verticies));
 
 // Create the Initialization for the algorithm
 // Tesla Model 3
-const debug_scale = 1;
+const debug_scale = 1.2;
 
 const tesla_model_3: VehicleModel = {
 
@@ -277,12 +277,11 @@ async function experiment(chargingStations: ChargingStation[]) {
     battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
   };
 
-
   const startTime = new Date();
 
   console.log("Experiment started at", startTime.getTime())
 
-  await myAlgorithm(
+  const finalPath = await myAlgorithm(
     getEnergyConsumptionOfTraversel,
     getTimeToTraverse,
     originVertex,
@@ -291,6 +290,22 @@ async function experiment(chargingStations: ChargingStation[]) {
     chargingStations,
     0
   )
+
+  // Draw Charging Stations
+
+  finalPath.forEach((vertex) => {
+    const { lng, lat } = vertexToLatLng.get(vertex)!;
+    const isMarked = finalPath;
+
+    circleMarker([lat, lng], {
+      color: isMarked ? "red" : "blue",
+      fillColor: "#f03",
+      fillOpacity: 0.5,
+      radius: isMarked ? 5 : 1, // radius of the circle in pixels
+    })
+    .addTo(myMap)
+  });
+
 
   const endTime = new Date();
 
@@ -362,17 +377,3 @@ for (const d of [0.5, 4]) {
 
 
 
-// Draw Charging Stations
-
-// chargeMapChargingStations.forEach((chargingStation) => {
-//   const { lng, lat } = chargingStation;
-//   const isMarked = prunedChargingStations.includes(chargingStation);
-
-//   circleMarker([lat, lng], {
-//     color: isMarked ? "red" : "blue",
-//     fillColor: "#f03",
-//     fillOpacity: 0.5,
-//     radius: isMarked ? 5 : 1, // radius of the circle in pixels
-//   })
-//     .addTo(myMap)
-// });
