@@ -128,3 +128,5 @@ dist
 
 /osrm/
 /osrm
+client/src/distances.json
+client/src/distances.ts

@@ -10,6 +10,10 @@ import {
 import {
   chargingStations as chargeMapChargingStations,
 } from "./chargemap";
+
+import {
+  distances
+} from "./distances";
 import {
   coordsToLatLngs,
   decodeOSMGeometry,
@@ -56,6 +60,7 @@ async function getTimeToTraverse(edge: Edge) {
     36 /* 130 km/h */
   );
 }
+
 
 const vertexToLatLng = new Map<Vertex, LatLng>();
 let routeCache = new Map<string, Edge>();
@@ -346,7 +351,7 @@ for (const d of [2]) {
   // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
   const chargingStations = prunedChargingStations.map(
     (chargingStation, i) => {
-      const vertex = { nickname: "Charging Station " + chargingStation.pool.id } as Vertex;
+      const vertex = { nickname: chargingStation.pool.id.toString() } as Vertex;
       vertexToLatLng.set(vertex, {
         lat: chargingStation.lat,
         lng: chargingStation.lng,
