@@ -147,7 +147,7 @@ export async function myAlgorithm(
       const energyNeeded = energyConsumption - u.battery_state_kw!;
 
       // Check if edge can be traversed without charging
-      if (energyConsumption < u.battery_state_kw!) {
+      if (energyNeeded <= 0) {
         cost = await getTimeToTraverse(edge);
         batteryState = u.battery_state_kw! - energyConsumption;
       } else {

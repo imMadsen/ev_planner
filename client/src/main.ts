@@ -151,6 +151,17 @@ geojson.addTo(myMap);
 
 myMap.fitBounds(coordsToLatLngs(verticies));
 
+// Draw all Charging Stations for visual purposes
+chargeMapChargingStations.forEach(({ lat, lng }) => {
+  circleMarker([lat, lng], {
+    color: "red",
+    fillColor: "#f03",
+    fillOpacity: 0.5,
+    radius: 1
+  })
+  .addTo(myMap) 
+})
+
 // Create the Initialization for the algorithm
 // Tesla Model 3
 const debug_scale = 1.2;
@@ -316,10 +327,20 @@ async function experiment(chargingStations: ChargingStation[]) {
 
 // Experiment "prune_distance"
 
-for (const d of [0.5, 4]) {
+for (const d of [2]) {
 
   // Prune the charging stations
   const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, d)
+  prunedChargingStations.forEach((chargingStation) => {
+    circleMarker([chargingStation.lat, chargingStation.lng], {
+      color: "blue",
+      fillColor: "#f03",
+      fillOpacity: 0.5,
+      radius: 1
+    })
+    .addEventListener("click", () => console.log(chargingStation))
+    .addTo(myMap) 
+  });
 
 
   // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
