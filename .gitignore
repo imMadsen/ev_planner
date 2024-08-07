@@ -131,3 +131,4 @@ dist
 client/src/distances.json
 client/src/distances.ts
 algorithm/distances.ts
+data/distances.ts
