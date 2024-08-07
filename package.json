@@ -1,9 +1,12 @@
 {
-    "name": "fitting-monorepo",
-    "private": true,
-    "workspaces": [
-      "algorithm/*",
-      "client/*"
-    ]
-  }
-  
+  "name": "fitting-monorepo",
+  "private": true,
+  "workspaces": [
+    "algorithm/*",
+    "client/*",
+    "api/*",
+    "data/*"
+  ],
+  "module": "index.ts",
+  "type": "module"
+}
