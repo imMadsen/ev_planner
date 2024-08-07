@@ -214,7 +214,11 @@ export async function myAlgorithm(
 
   console.log("Algorithm finished with a total visits of ", total_visits);
 
-  console.log("The duration of the route is ", (destination.time || 0) - startTime, S);
+  console.log("The duration of the route is ", (destination.time || 0) - startTime);
+  
+  S.forEach((x) => {
+    console.log(x.nickname, x.time)
+  })
 
   return S.reverse();
 }

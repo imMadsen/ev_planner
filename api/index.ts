@@ -4,7 +4,7 @@ import { get_route_data } from "./utilities/get_route_data";
 import { tesla_model_3 } from "./vehicle_models/tesla";
 import { ev_energy } from "./utilities/ev_energy";
 import { prune_distance } from "./prune/prune_distance";
-import { chargeMapChargingStations } from "data";
+import { chargeMapChargingStations, distances } from "data";
 import { debug_scale } from "./debug"
 
 type LatLng = {
@@ -27,8 +27,7 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
     const ms = 36; // 130 km/h
     const last_ms = 0;
     const delta_h = 0;
-    const edge_dist = (await getShortestPath(edge.start_vertex, edge.end_vertex))
-        .cost!;
+    const edge_dist = await get_shortest_path(edge.start_vertex, edge.end_vertex)
     const edge_radius = 0;
 
     return ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
@@ -36,25 +35,26 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
 
 async function getTimeToTraverse(edge: Edge) {
     return (
-        (await getShortestPath(edge.start_vertex, edge.end_vertex)).cost! /
+        (await get_shortest_path(edge.start_vertex, edge.end_vertex)) /
         36 /* 130 km/h */
     );
 }
 
-
 const vertexToLatLng = new Map<Vertex, LatLng>();
-let routeCache = new Map<string, Edge>();
-async function getShortestPath(
+async function get_shortest_path(
     origin: Vertex,
     destination: Vertex
-): Promise<Edge> {
-    const hash = `${origin.nickname}->${destination.nickname}`;
+): number {
+    const hash = `${origin.nickname}_${destination.nickname}`;
 
-    if (routeCache.has(hash)) return routeCache.get(hash)!;
+    const cachedDistance = distances[hash];
+    if (cachedDistance) {
+        return cachedDistance
+    }
 
-    const { lat: latOrigin, lng: lngOrigin } = vertexToLatLng.get(origin)!;
-    const { lat: latDestination, lng: lngDestination } = vertexToLatLng.get(destination)!;
-    
+    const { lat: latOrigin, lng: lngOrigin } = vertexToLatLng.get(origin);
+    const { lat: latDestination, lng: lngDestination } = vertexToLatLng.get(destination);
+
     const data = await get_route_data(
         latOrigin,
         lngOrigin,
@@ -62,19 +62,16 @@ async function getShortestPath(
         lngDestination
     );
 
-    const edge: Edge = {
-        start_vertex: origin,
-        end_vertex: destination,
-        cost:
-            data.routes.length > 0
-                ? data.routes[0].distance
-                : Number.MAX_SAFE_INTEGER,
-    };
+    const distance = data.routes.length > 0
+        ? data.routes[0].distance
+        : Number.MAX_SAFE_INTEGER;
 
-    routeCache.set(hash, edge);
+    distances[hash] = distance;
 
-    return edge;
+    return distance;
 }
+
+
 
 const origin = { lat: 57.72374620954098, lng: 10.559437867072692 }
 const destination = { lat: 53.95479334684554, lng: 9.719076450821097 }
@@ -141,11 +138,11 @@ const server = Bun.serve({
             0
         )
 
-        console.log(finalPath)
-
         return new Response("Bun!");
     },
 });
+
+console.log(distances["332168_321173"])
 
 // server.port is the randomly selected port
 console.log(server.port);
