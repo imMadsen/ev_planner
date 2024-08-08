@@ -32,8 +32,6 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
 
     const energyConsumed = ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
 
-    edge.debug_data.energyConsumedOnTraversal = energyConsumed // Debug data
-
     return energyConsumed;
 }
 
@@ -41,9 +39,6 @@ async function getTimeToTraverse(edge: Edge) {
     const distance = await get_shortest_path(edge.start_vertex, edge.end_vertex);
     const speed = 36 /* 130 km/h */
     const time = distance / speed
-    edge.debug_data.speed = speed;
-    edge.debug_data.distance = distance;
-    edge.debug_data.timeToTraverse = time; // Debug data
 
     return time;
 }

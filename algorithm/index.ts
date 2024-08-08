@@ -95,11 +95,8 @@ export async function myAlgorithm(
       if (_chargingMetrics === undefined) {
         continue;
       }
-      console.log(_chargingMetrics.chargeFinishTime)
 
       if (_chargingMetrics.chargeFinishTime < doneCharging) {
-        vertex.debug_data.amountCharged = _chargingMetrics.amountCharged
-        vertex.debug_data.chargeTime = _chargingMetrics.chargeFinishTime - vertex.time!
         doneCharging = _chargingMetrics.chargeFinishTime;
         connector = _connector;
       }
@@ -175,8 +172,8 @@ export async function myAlgorithm(
     }
 
     if (!u) throw "Dijkstra was unable to find a valid path 🤡";
-
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
+    if (u === destination) break;
 
 
     // Remove u from Q
@@ -245,18 +242,11 @@ export async function myAlgorithm(
         v.battery_state_wh = batteryState;
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
-        
-        v.debug_data.timeOfArrival = v.time;
-
-        // Settings the timeOfArrival in debug
-        v.debug_data.timeOfArrival = v.time;
 
         dist.set(v, alt);
         previous.set(v, u);
       }
     }
-    if (u === destination) break;
-
   }
 
   const S: Vertex[] = [];
@@ -307,6 +297,8 @@ export async function myAlgorithm(
     console.log();
 }
 console.log("Time for last vertex is " + ordered_vertices[ordered_vertices.length - 1].time)
+console.log("Time for 2nd last vertex is " + ordered_vertices[ordered_vertices.length - 2].time)
+
 console.log(`The car traversed a total distance of ${totalDistanceTraveled}m used ${totalEnergySpent}Wh, charged ${totalEnergyCharged}, which took ${totalTimeSpentCharging}.`)
 console.log(`Total time spent: ${totalTimeSpent}.`)
 ordered_vertices.forEach(vertex => console.log(vertex.id))
