@@ -92,14 +92,14 @@ export async function myAlgorithm(
         vehicle.model,
         vertex.battery_state_wh!
       );
-
       if (_chargingMetrics === undefined) {
         continue;
       }
+      console.log(_chargingMetrics.chargeFinishTime)
 
       if (_chargingMetrics.chargeFinishTime < doneCharging) {
         vertex.debug_data.amountCharged = _chargingMetrics.amountCharged
-        vertex.debug_data.chargeTime = _chargingMetrics.chargeFinishTime
+        vertex.debug_data.chargeTime = _chargingMetrics.chargeFinishTime - vertex.time!
         doneCharging = _chargingMetrics.chargeFinishTime;
         connector = _connector;
       }
@@ -177,12 +177,16 @@ export async function myAlgorithm(
     if (!u) throw "Dijkstra was unable to find a valid path 🤡";
 
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
-    if (u === destination) break;
+
 
     // Remove u from Q
     Q = Q.filter((i) => i !== u);
 
     for (const v of getNeighbours(u, graph)) {
+
+      if(u.id == "Origin" && v.id == "Destination"){
+        console.log(v.id);
+      }
       total_visits++;
 
       // Get the edge between our current node (u) and neighbour (v)
@@ -195,11 +199,17 @@ export async function myAlgorithm(
 
       // Calculate the consumption of the edge
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
-      // Calculcate required amount to charge for traversal
-      const energyRequired = energyConsumption - u.battery_state_wh!;
+
+      if(u.id == "Origin" && v.id == "Destination"){
+        console.log(energyConsumption)
+        console.log(u.battery_state_wh)
+      }
 
       // Check if edge can be traversed without charging
-      if (energyRequired <= 0) {
+      if (energyConsumption <= u.battery_state_wh!) {
+        if(u.id == "Origin" && v.id == "Destination"){
+          console.log("IT CAN REACH");
+        }
         cost = await getTimeToTraverse(edge);
         batteryState = u.battery_state_wh! - energyConsumption;
       } else {
@@ -209,12 +219,13 @@ export async function myAlgorithm(
         );
 
         if (chargingStation !== undefined) {
+
           // Make sure the vehicle can store that much energy
-          if (energyRequired <= vehicle.model.battery_capacity_wh) {
+          if (energyConsumption <= vehicle.model.battery_capacity_wh) {
             // Try to calculate the most optimal charger
             let timeToChargeCandidate = await getTimeToChargeCandidate(
               u,
-              energyRequired,
+              energyConsumption - u.battery_state_wh!, // Calculcate missing amount of energy for traversal
               chargingStation,
               vehicle
             );
@@ -222,7 +233,7 @@ export async function myAlgorithm(
             if (timeToChargeCandidate) {
               const { chargingTime, energyRequired } = timeToChargeCandidate;
               const traverseTime = await getTimeToTraverse(edge);
-              batteryState = u.battery_state_wh! - energyRequired + energyRequired;
+              batteryState = u.battery_state_wh! - energyRequired;
               cost = chargingTime + traverseTime;
             }
           }
@@ -232,9 +243,10 @@ export async function myAlgorithm(
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
         v.battery_state_wh = batteryState;
-        v.energy_needed = energyRequired;
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
+        
+        v.debug_data.timeOfArrival = v.time;
 
         // Settings the timeOfArrival in debug
         v.debug_data.timeOfArrival = v.time;
@@ -243,6 +255,8 @@ export async function myAlgorithm(
         previous.set(v, u);
       }
     }
+    if (u === destination) break;
+
   }
 
   const S: Vertex[] = [];
@@ -260,17 +274,44 @@ export async function myAlgorithm(
   let relevant_edges: Edge[] = []
   // Return all "relevant" edges for debugging purposes
 
-  for (let i = 0; i < S.length - 1; i++) {
-    const edge = _edges.find(({ start_vertex, end_vertex }) => 
-        (start_vertex === S[i] && end_vertex === S[i+1]) || 
-        (start_vertex === S[i+1] && end_vertex === S[i])
-    );
-    if (edge) {
-        relevant_edges.push(edge);
-    }
-}
+  let totalDistanceTraveled = 0;
+  let totalTimeSpent = 0;
+  let totalEnergySpent = 0;
+  let totalEnergyCharged = 0;
+  let totalTimeSpentCharging = 0;
+  for (let i = 0; i < ordered_vertices.length - 1; i++) {
+    console.log(`Visited vertex ${ordered_vertices[i].id} Current charge at: ${ordered_vertices[i].battery_state_wh}. The vehicle charged ${ordered_vertices[i].debug_data.amountCharged} and it took ${ordered_vertices[i].debug_data.chargeTime} `)
+    console.log(`Time for current Vertex is ${ordered_vertices[i].time}`)
+    console.log();
+    totalEnergyCharged += ordered_vertices[i].debug_data.amountCharged;
+    totalTimeSpentCharging += ordered_vertices[i].debug_data.chargeTime;
 
-  return {
+    const edge = _edges.find(({ start_vertex, end_vertex }) => 
+        (start_vertex === ordered_vertices[i] && end_vertex === ordered_vertices[i+1]) || 
+        (start_vertex === ordered_vertices[i+1] && end_vertex === ordered_vertices[i])
+    ) as Edge;
+    if (edge) {
+      totalDistanceTraveled += edge.debug_data.distance;
+      totalTimeSpent += edge.debug_data.timeToTraverse;
+      totalEnergySpent += edge.debug_data.energyConsumedOnTraversal;
+
+      relevant_edges.push(edge);
+
+      console.log();
+
+      console.log(`Traversed edge between ${ordered_vertices[i].id} - ${ordered_vertices[i + 1].id}. The car traversed ${edge.debug_data.distance}m, consumed ${edge.debug_data.energyConsumedOnTraversal}Wh, and it took ${edge.debug_data.timeToTraverse} seconds`)
+    }
+    console.log();
+    console.log();
+    console.log();
+    console.log();
+}
+console.log("Time for last vertex is " + ordered_vertices[ordered_vertices.length - 1].time)
+console.log(`The car traversed a total distance of ${totalDistanceTraveled}m used ${totalEnergySpent}Wh, charged ${totalEnergyCharged}, which took ${totalTimeSpentCharging}.`)
+console.log(`Total time spent: ${totalTimeSpent}.`)
+ordered_vertices.forEach(vertex => console.log(vertex.id))
+
+return {
     ordered_vertices: ordered_vertices.map(({ id, debug_data }) => ({ id, debug_data })),
     relevant_edges: relevant_edges.map(({ debug_data, end_vertex, start_vertex }) => ({
       end_vertex: end_vertex.id,

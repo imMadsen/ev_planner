@@ -84,8 +84,7 @@ const server = Bun.serve({
     async fetch(req) {
         // receive JSON data to a POST request
         if (req.method !== "GET") return new Response("Page not found", { status: 404 });
-
-
+        
         const url_search_params = new URLSearchParams(req.url.split("?")[1]);
 
         const olat_search_param = url_search_params.get("olat")
@@ -128,15 +127,17 @@ const server = Bun.serve({
         const originVertex = { 
             id: "Origin", 
             debug_data:{
-                amountCharged:0,
-                chargeTime:0,
+                amountCharged: 0,
+                chargeTime: 0,
+                timeOfArrival: 0
             } } as Vertex;
 
         const destinationVertex = { 
             id: "Destination",
             debug_data:{
-                amountCharged:0,
-                chargeTime:0,
+                amountCharged: 0,
+                chargeTime: 0,
+                timeOfArrival: 0
             }
         } as Vertex;
 
@@ -159,8 +160,8 @@ const server = Bun.serve({
                 const vertex = { 
                     id: chargingStation.pool.id.toString(),
                     debug_data: {
-                        amountCharged: Number.MAX_SAFE_INTEGER,
-                        chargeTime: Number.MAX_SAFE_INTEGER,
+                        amountCharged: 0,
+                        chargeTime: 0,
                         timeOfArrival: Number.MAX_SAFE_INTEGER
                     } 
                 } as Vertex;
