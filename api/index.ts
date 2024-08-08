@@ -74,8 +74,8 @@ async function get_shortest_path(
 
 
 
-const origin = { lat: 57.72374620954098, lng: 10.559437867072692 }
-const destination = { lat: 53.95479334684554, lng: 9.719076450821097 }
+const origin = { lat: 57.738167, lng: 10.633207 }
+const destination = { lat: 55.618545, lng: 12.605794 }
 
 let verticies: number[][] = [];
 
