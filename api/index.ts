@@ -161,6 +161,7 @@ const server = Bun.serve({
                     debug_data: {
                         amountCharged: Number.MAX_SAFE_INTEGER,
                         chargeTime: Number.MAX_SAFE_INTEGER,
+                        timeOfArrival: Number.MAX_SAFE_INTEGER
                     } 
                 } as Vertex;
                 vertexToLatLng.set(vertex, {
