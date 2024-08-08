@@ -161,18 +161,12 @@ const server = Bun.serve({
             0
         )
 
-        /*
-        Distance kørt i alt
-        Mænge laderstationer besøgt
-        Tid brugt og mængde ladet ved hver station
-        Time to compute
-        */
-
         const response = Response.json({
-            ordered_vertices: ordered_vertices.map(vertex => vertex.id),
+            ordered_vertices,
             charging_stations_count: prunedChargingStations.length,
             destination_time,
             total_visits,
+            relevant_edges,
             vertices
         });
 
