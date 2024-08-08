@@ -3,11 +3,11 @@ import {
   distance_point_to_line_segment_km,
 } from "../utilities/distance_point_to_line_segment";
 
-export function prune_distance(chargingStations: ChargingStation[], verticies: number[][], maxRange: number) {
+export function prune_distance(chargingStations: ChargingStation[], vertices: number[][], maxRange: number) {
   const prunedChargingStations: ChargingStation[] = [];
   let previousNode: number[] | undefined;
 
-  verticies.forEach((node, index) => {
+  vertices.forEach((node, index) => {
     const [lng1, lat1] = node;
 
     if (previousNode !== undefined && index > 0) {

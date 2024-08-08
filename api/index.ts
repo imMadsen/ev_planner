@@ -77,7 +77,7 @@ async function get_shortest_path(
 const origin = { lat: 57.738167, lng: 10.633207 }
 const destination = { lat: 55.618545, lng: 12.605794 }
 
-let verticies: number[][] = [];
+let vertices: number[][] = [];
 
 // If they want 6 digits of precision
 const mul = false ? 1e6 : 1e5;
@@ -91,12 +91,12 @@ const data = await get_route_data(
 );
 
 data.routes.forEach((route) => {
-    verticies = [...verticies, ...decode_osm(route.geometry, mul)];
+    vertices = [...vertices, ...decode_osm(route.geometry, mul)];
 });
 
 // Setting up the HTTP endpoint
 const server = Bun.serve({
-    async fetch(req) {
+    async fetch(req) {    
         // receive JSON data to a POST request
         if (req.method !== "GET") return new Response("Page not found", { status: 404 });
 
@@ -115,7 +115,7 @@ const server = Bun.serve({
         };
 
         // Prune the charging stations
-        const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, 1)
+        const prunedChargingStations = prune_distance(chargeMapChargingStations, vertices, 1)
 
         // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
         const chargingStations = prunedChargingStations.map(
@@ -143,11 +143,17 @@ const server = Bun.serve({
             0
         )
 
-        return Response.json({ 
-            ordered_verticies: ordered_vertices.map(vertex => vertex.nickname),
+        const response = Response.json({ 
+            ordered_vertices: ordered_vertices.map(vertex => vertex.nickname),
             destination_time,
-            total_visits
+            total_visits,
+            vertices
          });
+
+         response.headers.set('Access-Control-Allow-Origin', '*');
+         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); 
+
+         return response;
     },
 });
 

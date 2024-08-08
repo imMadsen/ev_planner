@@ -20,7 +20,7 @@ export function dijkstra(graph: Graph, origin: Vertex, destination: Vertex) {
 
     dist.set(origin, 0);
 
-    // Create a copy of verticies
+    // Create a copy of vertices
     let Q = [...graph.vertices];
 
     while (Q.length > 0) {

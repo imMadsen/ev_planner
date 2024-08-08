@@ -12,7 +12,7 @@ type LatLng = {
 const stupidCache = new Map<string, number>();
 
 async function createCacheSet(originLat: number, originLng: number, destinationLat: number, destinationLng: number) {
-    let verticies: number[][] = [];
+    let vertices: number[][] = [];
 
     // If they want 6 digits of precision
     const mul = false ? 1e6 : 1e5;
@@ -26,11 +26,11 @@ async function createCacheSet(originLat: number, originLng: number, destinationL
     );
 
     data.routes.forEach((route) => {
-        verticies = [...verticies, ...decode_osm(route.geometry, mul)];
+        vertices = [...vertices, ...decode_osm(route.geometry, mul)];
     });
 
     // Prune the charging stations
-    let prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, 11)
+    let prunedChargingStations = prune_distance(chargeMapChargingStations, vertices, 11)
     prunedChargingStations = [...new Set(prunedChargingStations)]
 
     console.log(chargeMapChargingStations.length, prunedChargingStations.length)

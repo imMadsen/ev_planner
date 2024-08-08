@@ -6,6 +6,7 @@
     "typescript": "^5.4.5",
     "vite": "^5.2.0",
     "algorithm": "workspace:../algorithm",
+    "data": "workspace:../data",
     "leaflet": "^1.9.4"
   },
   "private": true,
