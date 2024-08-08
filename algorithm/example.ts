@@ -44,10 +44,10 @@ async function getTimeToTraverse(edge: Edge) {
 }
 
 const vertices: Vertex[] = [
-  { nickname: "A" },
-  { nickname: "B" },
-  { nickname: "C" },
-  { nickname: "D" },
+  { id: "A" },
+  { id: "B" },
+  { id: "C" },
+  { id: "D" },
 ];
 
 const myGraph: Graph = {
@@ -66,12 +66,12 @@ const vehicle: VehicleModel = {
   battery_capacity_wh: 100
 };
 
-const origin = myGraph.vertices.find((vertex) => vertex.nickname === "A")!;
-const destination = myGraph.vertices.find((vertex) => vertex.nickname === "C")!;
+const origin = myGraph.vertices.find((vertex) => vertex.id === "A")!;
+const destination = myGraph.vertices.find((vertex) => vertex.id === "C")!;
 
 const chargingStations: ChargingStation[] = [
   {
-    vertex: myGraph.vertices.find((vertex) => vertex.nickname === "D")!,
+    vertex: myGraph.vertices.find((vertex) => vertex.id === "D")!,
     connectors: [{
       output_time_kw: new Array(100).fill(null).map((_, i) => ([i, 2]))
     }],

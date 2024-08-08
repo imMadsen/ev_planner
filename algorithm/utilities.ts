@@ -1,4 +1,4 @@
-import type { Vehicle, Vertex } from ".";
+import type { Vehicle, VehicleModel, Vertex } from ".";
 
 export function findXForArea(
   points: [number, number][],
@@ -28,21 +28,20 @@ export function findXForArea(
   return;
 }
 
-export function findDynamicXForArea(
+export function getChargingMetricsByVehicleModel(
   points: [number, number][],
   start: number,
   targetSum: number,
-  vehicle: Vehicle,
-  vertex: Vertex
+  vehicleModel: VehicleModel,
+  initalSoC: number
 ) {
   let sum = 0;
-  let SoC = vertex.battery_state_wh!;
   let increments = 1;
   let iterations = 0;
 
   for (let i = 1; i <= points.length - 1; i += increments) {
     if (start < points[i][0]) {
-      let batteryPercentage = Math.floor(Math.min(SoC, vehicle.model.battery_capacity_wh)* 100 / vehicle.model.battery_capacity_wh )
+      let batteryPercentage = Math.floor(Math.min(initalSoC, vehicleModel.battery_capacity_wh)* 100 / vehicleModel.battery_capacity_wh )
 
       let xPoint = i - increments >= 0 ? i - increments : 0;
       const l1_x = Math.max(start, points[xPoint][0]);
@@ -52,10 +51,10 @@ export function findDynamicXForArea(
         (points[xPoint][1] - points[i][1]) / (points[xPoint][0] - points[i][0]);
       let b_1 = points[i - 1][1] + (l1_x - points[i - 1][0]) * delta;
 
-      b_1 = Math.min(b_1, vehicle.model.charging_curve_kw[batteryPercentage][1] * 1000)
+      b_1 = Math.min(b_1, vehicleModel.charging_curve_kw[batteryPercentage][1] * 1000)
 
       let b_2 = points[xPoint][1] + (l2_x - points[xPoint][0]) * delta;
-      b_2 = Math.min(b_2, vehicle.model.charging_curve_kw[batteryPercentage][1] * 1000)
+      b_2 = Math.min(b_2, vehicleModel.charging_curve_kw[batteryPercentage][1] * 1000)
 
 
       const h = l2_x - l1_x;

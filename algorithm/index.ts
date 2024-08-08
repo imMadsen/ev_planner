@@ -1,19 +1,24 @@
-import { findDynamicXForArea, findXForArea } from "./utilities";
+import { getChargingMetricsByVehicleModel, findXForArea } from "./utilities";
 
 export type Vertex = {
-  nickname?: string;
+  id?: string;
   time?: number;
   battery_state_wh?: number;
   energy_needed?: number;
   energy_consumption?: number;
   charging_station?: ChargingStation;
+  debug_data?: {
+    
+  };
 };
 
 export type Edge = {
   start_vertex: Vertex;
   end_vertex: Vertex;
   cost?: number;
-  //distance: number; //meters
+  debug_data?: {
+    distance: number;    
+  }
 };
 
 export type Graph = {
@@ -55,11 +60,6 @@ export async function myAlgorithm(
 ) {
   let total_visits = 0;
 
-  console.log(
-    "Algorithm stated with a chargingStations count of ",
-    charging_stations.length
-  );
-
   function getNeighbours(u: Vertex, graph: Graph): Vertex[] {
     return [
       ...new Set(
@@ -69,33 +69,23 @@ export async function myAlgorithm(
       ),
     ];
   }
-  type chargeAndTraverseData = {
-    chargeTime: number;
-    energyCharged: number;
-    chargingFinishedTime: number;
-  };
-  async function getTimeToCharge(
+
+  async function getTimeToChargeCandidate(
     vertex: Vertex,
-    energyNeeded: number,
+    energyRequired: number,
     chargingStation: ChargingStation,
-    edge: Edge,
     vehicle: Vehicle
   ) {
-
-    let data: chargeAndTraverseData = {
-      chargeTime: Number.MAX_SAFE_INTEGER,
-      energyCharged: Number.MAX_SAFE_INTEGER,
-      chargingFinishedTime: Number.MAX_SAFE_INTEGER
-    };
-
     let connector: Connector | undefined;
     let doneCharging = Number.MAX_SAFE_INTEGER;
+    
     for (let _connector of chargingStation.connectors) {
-      let _doneCharging = findXForArea(
+      let _doneCharging = getChargingMetricsByVehicleModel(
         _connector.output_time_kw,
         vertex.time!,
-        energyNeeded,
-
+        energyRequired,
+        vehicle.model,
+        vertex.battery_state_wh!
       );
 
       if (_doneCharging === undefined) {
@@ -110,12 +100,11 @@ export async function myAlgorithm(
 
     // Check if a connector was found, if so use it
     if (connector !== undefined) {
-      data.chargeTime = doneCharging - vertex.time!;
-      data.chargingFinishedTime = doneCharging;
-      data.energyCharged = energyNeeded;
+      return {
+        chargingTime: doneCharging - vertex.time!,
+        energyRequired
+      };
     }
-
-    return data;
   }
 
   // Create a new Graph that only represents distances between chargingStations, origin & destination
@@ -128,16 +117,16 @@ export async function myAlgorithm(
     }),
   ];
 
-  const edges: Edge[] = [];
+  const _edges: Edge[] = [];
 
   const graph: Graph = {
     vertices,
-    edges,
+    edges: _edges,
   };
   for (const v1 of vertices)
     for (const v2 of vertices)
       if (v1 !== v2) {
-        edges.push({
+        _edges.push({
           start_vertex: v1,
           end_vertex: v2,
         });
@@ -194,10 +183,10 @@ export async function myAlgorithm(
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
 
       // Calculcate required amount to charge for traversal
-      const energyNeeded = energyConsumption - u.battery_state_wh!;
+      const energyRequired = energyConsumption - u.battery_state_wh!;
 
       // Check if edge can be traversed without charging
-      if (energyNeeded <= 0) {
+      if (energyRequired <= 0) {
         cost = await getTimeToTraverse(edge);
         batteryState = u.battery_state_wh! - energyConsumption;
       } else {
@@ -208,20 +197,20 @@ export async function myAlgorithm(
 
         if (chargingStation !== undefined) {
           // Make sure the vehicle can store that much energy
-          if (energyNeeded <= vehicle.model.battery_capacity_wh) {
+          if (energyRequired <= vehicle.model.battery_capacity_wh) {
             // Try to calculate the most optimal charger
-            let chargeData = await getTimeToCharge(
+            let timeToChargeCandidate = await getTimeToChargeCandidate(
               u,
-              energyNeeded,
+              energyRequired,
               chargingStation,
-              edge,
               vehicle
             );
 
-            if(chargeData.chargeTime < Number.MAX_SAFE_INTEGER){
+            if (timeToChargeCandidate) {
+              const { chargingTime, energyRequired } = timeToChargeCandidate;
               const traverseTime = await getTimeToTraverse(edge);
-              batteryState = u.battery_state_wh! - energyNeeded + chargeData.energyCharged;
-              cost = chargeData.chargeTime + traverseTime;
+              batteryState = u.battery_state_wh! - energyRequired + energyRequired;
+              cost = chargingTime + traverseTime;
             }
           }
         }
@@ -230,7 +219,7 @@ export async function myAlgorithm(
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
         v.battery_state_wh = batteryState;
-        v.energy_needed = energyNeeded;
+        v.energy_needed = energyRequired;
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
 
@@ -249,15 +238,14 @@ export async function myAlgorithm(
 
   S.push(origin);
 
-  console.log("Algorithm finished with a total visits of ", total_visits);
+  const ordered_vertices = S.reverse();
 
-  console.log(
-    "The duration of the route is ",
-    (destination.time || 0) - startTime
-  );
+  // Return all "relevant" edges for debugging purposes
+  const relevant_edges = _edges.filter(({ start_vertex, end_vertex }) => ordered_vertices.includes(start_vertex) && ordered_vertices.includes(end_vertex))
 
   return {
-    ordered_vertices: S.reverse(),
+    ordered_vertices: ordered_vertices.map((vertex) => vertex.debug_data),
+    relevant_edges: relevant_edges.map((edge) => edge.debug_data),
     destination_time: destination.time,
     total_visits,
   };
