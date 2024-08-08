@@ -72,35 +72,51 @@ async function get_shortest_path(
     return distance;
 }
 
-
-
-const origin = { lat: 57.738167, lng: 10.633207 }
-const destination = { lat: 55.618545, lng: 12.605794 }
-
-let vertices: number[][] = [];
-
-// If they want 6 digits of precision
-const mul = false ? 1e6 : 1e5;
-
-// Initialize Route
-const data = await get_route_data(
-    origin.lat,
-    origin.lng,
-    destination.lat,
-    destination.lng
-);
-
-data.routes.forEach((route) => {
-    vertices = [...vertices, ...decode_osm(route.geometry, mul)];
-});
-
 // Setting up the HTTP endpoint
 const server = Bun.serve({
-    async fetch(req) {    
+    async fetch(req) {
         // receive JSON data to a POST request
         if (req.method !== "GET") return new Response("Page not found", { status: 404 });
 
-      
+
+        const url_search_params = new URLSearchParams(req.url.split("?")[1]);
+
+        const olat_search_param = url_search_params.get("olat")
+        const olng_search_param = url_search_params.get("olng")
+
+        const dlat_search_param = url_search_params.get("dlat")
+        const dlng_search_param = url_search_params.get("dlng")
+
+        const origin = {
+            lat: olat_search_param ? Number(olat_search_param) : 57.738167,
+            lng: olng_search_param ? Number(olng_search_param) : 10.633207
+        }
+
+        const destination = {
+            lat: olat_search_param ? Number(dlat_search_param) : 57.738167,
+            lng: olng_search_param ? Number(dlng_search_param) : 10.633207
+        }
+
+        const parameter_search_param = url_search_params.get("parameter");
+        const parameter = parameter_search_param ? Number(parameter_search_param) : 1;
+
+        let vertices: number[][] = [];
+
+        // If they want 6 digits of precision
+        const mul = false ? 1e6 : 1e5;
+
+        // Initialize Route
+        const data = await get_route_data(
+            origin.lat,
+            origin.lng,
+            destination.lat,
+            destination.lng
+        );
+
+        data.routes.forEach((route) => {
+            vertices = [...vertices, ...decode_osm(route.geometry, mul)];
+        });
+
         // Create the Origin and Destination
         const originVertex = { nickname: "Origin" } as Vertex;
         const destinationVertex = { nickname: "Destination" } as Vertex;
@@ -115,7 +131,7 @@ const server = Bun.serve({
         };
 
         // Prune the charging stations
-        const prunedChargingStations = prune_distance(chargeMapChargingStations, vertices, 1)
+        const prunedChargingStations = prune_distance(chargeMapChargingStations, vertices, parameter)
 
         // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
         const chargingStations = prunedChargingStations.map(
@@ -143,17 +159,18 @@ const server = Bun.serve({
             0
         )
 
-        const response = Response.json({ 
+        const response = Response.json({
             ordered_vertices: ordered_vertices.map(vertex => vertex.nickname),
+            charging_stations_count: prunedChargingStations.length,
             destination_time,
             total_visits,
             vertices
-         });
+        });
 
-         response.headers.set('Access-Control-Allow-Origin', '*');
-         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); 
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
-         return response;
+        return response;
     },
 });
 

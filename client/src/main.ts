@@ -4,7 +4,7 @@ import {
 import {
   coordsToLatLngs,
 } from "./utilities";
-import { circleMarker, geoJson, map, tileLayer } from "leaflet";
+import { circleMarker, geoJson, map, tileLayer, GeoJSON, CircleMarker, circle } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
 
@@ -26,15 +26,43 @@ chargeMapChargingStations.forEach(({ lat, lng }) => {
     .addTo(myMap)
 })
 
-async function requestRoute() {
-  const response = await fetch("http://localhost:3000");
+const next_btn = document.querySelector("#next-btn")! as HTMLButtonElement;
 
+const origin = [56.531221, 8.306049]
+const destination = [55.485505, 8.505668]
+
+let circle_markers: CircleMarker<any>[] = []
+let geojson: GeoJSON<any, any> | undefined; 
+
+const parameters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+let i = 0;
+next_btn.addEventListener("click", async () => {
+  const parameter = parameters[i];
+
+  if (!parameter) return console.error("No more parameters to be checked!");
+  
+
+  if (geojson) geojson.remove(); 
+  circle_markers.forEach((circle_markers) => circle_markers.remove())
+
+  const start_time = new Date().getTime();
+  console.log("Started experiment! Parameter is", parameter)
+
+  const response = await fetch(`http://localhost:3000?olat=${origin[0]}&olng=${origin[1]}&dlat=${destination[0]}&dlng=${destination[1]}&parameter=${parameter}`);
+
+  
   const data = await response.json() as {
-
-    vertices: number[][]
+    ordered_vertices: string[],
+    vertices: number[][],
+    charging_stations_count: number,
+    total_visits: number
   };
-
-  const { vertices } = data;
+    
+  const { vertices, ordered_vertices, total_visits, charging_stations_count } = data;
+  
+  const end_time = new Date().getTime();
+  console.log("Experiment finished duration was ", end_time - start_time, ", parameter was", parameter, ", charging_station_count was", charging_stations_count,  ", total_visits was ", total_visits)
 
   // Draw Route
   const json = {
@@ -51,7 +79,7 @@ async function requestRoute() {
     ],
   };
 
-  const geojson = geoJson(json as any, {
+  geojson = geoJson(json as any, {
     style: function (feature) {
       return {
         fillColor: feature?.properties.fill,
@@ -64,81 +92,20 @@ async function requestRoute() {
 
   geojson.addTo(myMap);
 
+  circle_markers = chargeMapChargingStations.filter(chargingStation => ordered_vertices.includes(chargingStation.pool.id.toString())).map(({ lat, lng }) => {
+    const circle_marker = circleMarker([lat, lng], {
+      color: "blue",
+      fillColor: "#f03",
+      fillOpacity: 0.5,
+      radius: 3
+    })
+
+    circle_marker.addTo(myMap);
+
+    return circle_marker
+  })
+
   myMap.fitBounds(coordsToLatLngs(vertices));
-}
 
-requestRoute();
-
-// async function experiment(chargingStations: ChargingStation[]) {
-
-//   // vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
-//   // vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
-
-
-//   // Draw Charging Stations
-
-//   finalPath.forEach((vertex) => {
-//     const { lng, lat } = vertexToLatLng.get(vertex)!;
-//     const isMarked = finalPath;
-
-//     circleMarker([lat, lng], {
-//       color: isMarked ? "red" : "blue",
-//       fillColor: "#f03",
-//       fillOpacity: 0.5,
-//       radius: isMarked ? 5 : 1, // radius of the circle in pixels
-//     })
-//     .addTo(myMap)
-//   });
-
-
-//   const endTime = new Date();
-
-//   console.log("Experiment ended at", startTime.getTime())
-
-//   console.log("Calcuations took", endTime.getTime() - startTime.getTime())
-// }
-
-// // Experiment "prune_distance"
-
-// for (const d of [2]) {
-
-
-//   console.log("Running experiment with prune_distance (cache = no), d = ", d)
-
-//   routeCache = new Map<string, Edge>();
-
-//   await experiment(chargingStations)
-
-//   console.log(chargingStations)
-
-//   // console.log("Running experiment with prune_distance (cache = yes), d = ", d)
-
-//   // await experiment(chargingStations)
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  i++;
+})
