@@ -1,9 +1,9 @@
-import { findXForArea } from "./utilities";
+import { findDynamicXForArea, findXForArea } from "./utilities";
 
 export type Vertex = {
   nickname?: string;
   time?: number;
-  battery_state_kw?: number;
+  battery_state_wh?: number;
   energy_needed?: number;
   energy_consumption?: number;
   charging_station?: ChargingStation;
@@ -26,13 +26,13 @@ export type Path = {
 };
 
 export type VehicleModel = {
-  charging_curve: number[][];
-  battery_capacity_kw: number;
+  charging_curve_kw: number[][];
+  battery_capacity_wh: number;
 };
 
 export type Vehicle = {
   model: VehicleModel;
-  battery_state_kw?: number;
+  battery_state_wh?: number;
 };
 
 export type Connector = {
@@ -70,12 +70,11 @@ export async function myAlgorithm(
     ];
   }
   type chargeAndTraverseData = {
-    traverseTime: number;
     chargeTime: number;
     energyCharged: number;
     chargingFinishedTime: number;
   };
-  async function getTimeToChargeAndTraverse(
+  async function getTimeToCharge(
     vertex: Vertex,
     energyNeeded: number,
     chargingStation: ChargingStation,
@@ -84,7 +83,6 @@ export async function myAlgorithm(
   ) {
 
     let data: chargeAndTraverseData = {
-      traverseTime: Number.MAX_SAFE_INTEGER,
       chargeTime: Number.MAX_SAFE_INTEGER,
       energyCharged: Number.MAX_SAFE_INTEGER,
       chargingFinishedTime: Number.MAX_SAFE_INTEGER
@@ -96,7 +94,8 @@ export async function myAlgorithm(
       let _doneCharging = findXForArea(
         _connector.output_time_kw,
         vertex.time!,
-        energyNeeded
+        energyNeeded,
+
       );
 
       if (_doneCharging === undefined) {
@@ -111,8 +110,6 @@ export async function myAlgorithm(
 
     // Check if a connector was found, if so use it
     if (connector !== undefined) {
-      const traverseTime = await getTimeToTraverse(edge);
-      data.traverseTime = traverseTime;
       data.chargeTime = doneCharging - vertex.time!;
       data.chargingFinishedTime = doneCharging;
       data.energyCharged = energyNeeded;
@@ -154,7 +151,7 @@ export async function myAlgorithm(
     previous.set(vertex, undefined);
   }
 
-  origin.battery_state_kw = vehicle.battery_state_kw;
+  origin.battery_state_wh = vehicle.battery_state_wh;
   origin.time = startTime;
 
   dist.set(origin, 0);
@@ -197,12 +194,12 @@ export async function myAlgorithm(
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
 
       // Calculcate required amount to charge for traversal
-      const energyNeeded = energyConsumption - u.battery_state_kw!;
+      const energyNeeded = energyConsumption - u.battery_state_wh!;
 
       // Check if edge can be traversed without charging
       if (energyNeeded <= 0) {
         cost = await getTimeToTraverse(edge);
-        batteryState = u.battery_state_kw! - energyConsumption;
+        batteryState = u.battery_state_wh! - energyConsumption;
       } else {
         // Check if at a charging staiton
         const chargingStation = charging_stations.find(
@@ -211,25 +208,28 @@ export async function myAlgorithm(
 
         if (chargingStation !== undefined) {
           // Make sure the vehicle can store that much energy
-          if (energyNeeded <= vehicle.model.battery_capacity_kw) {
+          if (energyNeeded <= vehicle.model.battery_capacity_wh) {
             // Try to calculate the most optimal charger
-            let chargeData = await getTimeToChargeAndTraverse(
+            let chargeData = await getTimeToCharge(
               u,
               energyNeeded,
               chargingStation,
               edge,
               vehicle
             );
-            batteryState = u.battery_state_kw! - energyNeeded + chargeData.energyCharged;
-            cost = chargeData.chargeTime + chargeData.traverseTime;
 
+            if(chargeData.chargeTime < Number.MAX_SAFE_INTEGER){
+              const traverseTime = await getTimeToTraverse(edge);
+              batteryState = u.battery_state_wh! - energyNeeded + chargeData.energyCharged;
+              cost = chargeData.chargeTime + traverseTime;
+            }
           }
         }
       }
 
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
-        v.battery_state_kw = batteryState;
+        v.battery_state_wh = batteryState;
         v.energy_needed = energyNeeded;
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;

@@ -3,8 +3,8 @@ import { debug_scale } from "../debug";
 
 // Tesla Model 3
 export const tesla_model_3: VehicleModel = {
-  battery_capacity_kw: 60 * 1000 * debug_scale, // 60 kWh
-  charging_curve: [
+  battery_capacity_wh: 60 * 1000 * debug_scale, // 60 kWh
+  charging_curve_kw: [
     //kwh, max kW received
     [0, 50],   // 0 kWh
     [0.6, 62], // 0.6 kWh

@@ -63,7 +63,7 @@ const myGraph: Graph = {
 
 
 const vehicle: VehicleModel = {
-  battery_capacity_kw: 100
+  battery_capacity_wh: 100
 };
 
 const origin = myGraph.vertices.find((vertex) => vertex.nickname === "A")!;

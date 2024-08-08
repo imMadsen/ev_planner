@@ -7,17 +7,19 @@ import { prune_distance } from "./prune/prune_distance";
 import { chargeMapChargingStations, distances } from "data";
 import { debug_scale } from "./debug"
 
+import { findXForArea, findDynamicXForArea } from "algorithm/utilities";
+
 type LatLng = {
     lat: number;
     lng: number;
 };
 
 // Create a generic Connector (Note: Output is constant over time)
-function createGenericConnector(outputkWs: number) {
+function createGenericConnector(outputkW: number) {
     const genericConnector = {
         output_time_kw: new Array(10000)
             .fill(null)
-            .map((_, i) => [i, outputkWs]),
+            .map((_, i) => [i, outputkW * 1000]), // Convert from kW to W
     } as Connector;
 
     return genericConnector;
@@ -127,8 +129,9 @@ const server = Bun.serve({
         // Create an Instance of a Vehicle
         const vehicle: Vehicle = {
             model: tesla_model_3,
-            battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
+            battery_state_wh: 60 * 1000 * debug_scale, // 60 kWh,
         };
+
 
         // Prune the charging stations
         const prunedChargingStations = prune_distance(chargeMapChargingStations, vertices, parameter)
@@ -143,6 +146,7 @@ const server = Bun.serve({
                 });
 
                 return {
+                    //@ts-ignore
                     connectors: chargingStation.pool.charging_connectors.map((output) => createGenericConnector(output.power_max)),
                     vertex: vertex,
                 };
@@ -158,6 +162,13 @@ const server = Bun.serve({
             chargingStations,
             0
         )
+
+        /*
+        Distance kørt i alt
+        Mænge laderstationer besøgt
+        Tid brugt og mængde ladet ved hver station
+
+        */
 
         const response = Response.json({
             ordered_vertices: ordered_vertices.map(vertex => vertex.nickname),
@@ -176,3 +187,18 @@ const server = Bun.serve({
 
 // server.port is the randomly selected port
 console.log(server.port);
+
+
+/*
+const genericConnector = {
+    output_time_kw: new Array(10000)
+        .fill(null)
+        .map((_, i) => [i, 300 * 1000]), // Convert from kW to W
+} as Connector;
+
+
+const timeToChargeDynamic = findDynamicXForArea(genericConnector.output_time_kw, 0, 60000, vehicle, originVertex);
+const timeToCharge = findXForArea(genericConnector.output_time_kw, 0, 60000);
+console.log("TimeDynamic: " + timeToChargeDynamic);
+console.log("Time: " + timeToCharge);
+*/
