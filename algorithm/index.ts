@@ -8,6 +8,7 @@ export type Vertex = {
   energy_consumption?: number;
   charging_station?: ChargingStation;
   debug_data: {
+    timeOfArrival: number;
     amountCharged: number;
     chargeTime: number;
   };
@@ -235,6 +236,9 @@ export async function myAlgorithm(
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
 
+        // Settings the timeOfArrival in debug
+        v.debug_data.timeOfArrival = v.time;
+
         dist.set(v, alt);
         previous.set(v, u);
       }
@@ -268,7 +272,11 @@ export async function myAlgorithm(
 
   return {
     ordered_vertices: ordered_vertices.map(({ id, debug_data }) => ({ id, debug_data })),
-    relevant_edges: relevant_edges.map((edge) => edge.debug_data),
+    relevant_edges: relevant_edges.map(({ debug_data, end_vertex, start_vertex }) => ({
+      end_vertex: end_vertex.id,
+      start_vertex: start_vertex.id,
+      debug_data
+    })),
     destination_time: destination.time,
     total_visits,
   };

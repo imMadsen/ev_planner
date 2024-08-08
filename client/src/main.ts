@@ -8,6 +8,33 @@ import { circleMarker, geoJson, map, tileLayer, GeoJSON, CircleMarker, circle } 
 import "leaflet/dist/leaflet.css";
 import "./index.css";
 
+type APIResponseVertex = {
+  id: string | undefined;
+  debug_data: {
+    amountCharged: number;
+    chargeTime: number;
+  };
+}
+
+type APIResponse = {
+  total_visits: number,
+  vertices: number[][]
+  destination_time: number,
+  charging_stations_count: number,
+  relevant_edges: {
+    start_vertex: string;
+    end_vertex: string;
+    debug_data: {
+      distance: number;
+      speed: number;
+      timeToTraverse: number;
+    }
+  }[],
+  ordered_vertices: APIResponseVertex[]
+}
+
+let lastSelectedVertex: APIResponseVertex | undefined;
+
 const myMap = map("map").setView([56.511984, 10.067244], 13); // Set initial view
 
 tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -32,37 +59,34 @@ const origin = [56.531221, 8.306049]
 const destination = [55.485505, 8.505668]
 
 let circle_markers: CircleMarker<any>[] = []
-let geojson: GeoJSON<any, any> | undefined; 
+let geojson: GeoJSON<any, any> | undefined;
 
-const parameters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+const parameters = [1, 2]
 
 let i = 0;
 next_btn.addEventListener("click", async () => {
   const parameter = parameters[i];
 
   if (!parameter) return console.error("No more parameters to be checked!");
-  
 
-  if (geojson) geojson.remove(); 
+
+  if (geojson) geojson.remove();
   circle_markers.forEach((circle_markers) => circle_markers.remove())
 
   const start_time = new Date().getTime();
+
   console.log("Started experiment! Parameter is", parameter)
 
   const response = await fetch(`http://localhost:3000?olat=${origin[0]}&olng=${origin[1]}&dlat=${destination[0]}&dlng=${destination[1]}&parameter=${parameter}`);
 
-  
-  const data = await response.json() as {
-    ordered_vertices: string[],
-    vertices: number[][],
-    charging_stations_count: number,
-    total_visits: number
-  };
-    
-  const { vertices, ordered_vertices, total_visits, charging_stations_count } = data;
-  
+
+  const data = await response.json() as APIResponse
+
+  const { vertices, ordered_vertices, total_visits, charging_stations_count, relevant_edges } = data;
+
   const end_time = new Date().getTime();
-  console.log("Experiment finished duration was ", end_time - start_time, ", parameter was", parameter, ", charging_station_count was", charging_stations_count,  ", total_visits was ", total_visits)
+
+  console.log("Experiment finished duration was ", end_time - start_time, ", parameter was", parameter, ", charging_station_count was", charging_stations_count, ", total_visits was ", total_visits)
 
   // Draw Route
   const json = {
@@ -92,7 +116,15 @@ next_btn.addEventListener("click", async () => {
 
   geojson.addTo(myMap);
 
-  circle_markers = chargeMapChargingStations.filter(chargingStation => ordered_vertices.includes(chargingStation.pool.id.toString())).map(({ lat, lng }) => {
+  circle_markers = []
+
+  ordered_vertices.forEach((vertex) => {
+    const chargeMapChargingStation = chargeMapChargingStations.find(chargingStation => chargingStation.pool.id.toString() === vertex.id)
+
+    if (!chargeMapChargingStation) return;
+
+    const { lat, lng } = chargeMapChargingStation;
+
     const circle_marker = circleMarker([lat, lng], {
       color: "blue",
       fillColor: "#f03",
@@ -102,7 +134,18 @@ next_btn.addEventListener("click", async () => {
 
     circle_marker.addTo(myMap);
 
-    return circle_marker
+    circle_marker.addEventListener("click", () => {
+      console.log(vertex)
+
+      if (lastSelectedVertex) {
+        const relevant_edge = relevant_edges.find(edge => edge.start_vertex == vertex.id && edge.end_vertex == lastSelectedVertex.id) 
+        console.log(relevant_edge);
+      }
+
+      lastSelectedVertex = vertex;
+    })
+
+    circle_markers.push(circle_marker);
   })
 
   myMap.fitBounds(coordsToLatLngs(vertices));
