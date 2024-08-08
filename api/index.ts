@@ -34,17 +34,18 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
 }
 
 async function getTimeToTraverse(edge: Edge) {
-    return (
-        (await get_shortest_path(edge.start_vertex, edge.end_vertex)) /
-        36 /* 130 km/h */
-    );
+    const distance = await get_shortest_path(edge.start_vertex, edge.end_vertex);
+    const speed = 36 /* 130 km/h */
+    const time = distance / speed
+
+    return time;
 }
 
 const vertexToLatLng = new Map<Vertex, LatLng>();
 async function get_shortest_path(
     origin: Vertex,
     destination: Vertex
-): number {
+) {
     const hash = `${origin.nickname}_${destination.nickname}`;
 
     const cachedDistance = distances[hash];
@@ -52,8 +53,8 @@ async function get_shortest_path(
         return cachedDistance
     }
 
-    const { lat: latOrigin, lng: lngOrigin } = vertexToLatLng.get(origin);
-    const { lat: latDestination, lng: lngDestination } = vertexToLatLng.get(destination);
+    const { lat: latOrigin, lng: lngOrigin } = vertexToLatLng.get(origin)!;
+    const { lat: latDestination, lng: lngDestination } = vertexToLatLng.get(destination)!;
 
     const data = await get_route_data(
         latOrigin,
@@ -96,18 +97,18 @@ data.routes.forEach((route) => {
 // Setting up the HTTP endpoint
 const server = Bun.serve({
     async fetch(req) {
-        // Create an Instance of a Vehicle
-        const vehicle: Vehicle = {
-            model: tesla_model_3,
-            battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
-        };
-
         // Create the Origin and Destination
         const originVertex = { nickname: "Origin" } as Vertex;
         const destinationVertex = { nickname: "Destination" } as Vertex;
 
         vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
         vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
+
+        // Create an Instance of a Vehicle
+        const vehicle: Vehicle = {
+            model: tesla_model_3,
+            battery_state_kw: 60 * 1000 * debug_scale, // 60 kWh,
+        };
 
         // Prune the charging stations
         const prunedChargingStations = prune_distance(chargeMapChargingStations, verticies, 1)
@@ -141,8 +142,6 @@ const server = Bun.serve({
         return new Response("Bun!");
     },
 });
-
-console.log(distances["332168_321173"])
 
 // server.port is the randomly selected port
 console.log(server.port);
