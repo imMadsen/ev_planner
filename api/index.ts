@@ -1,4 +1,4 @@
-import { myAlgorithm, type ChargingStation, type Connector, type Edge, type Vehicle, type Vertex } from "algorithm";
+import { myAlgorithm, type Connector, type Edge, type Vehicle, type Vertex } from "algorithm";
 import { decode_osm } from "./utilities/decode_osm";
 import { get_route_data } from "./utilities/get_route_data";
 import { tesla_model_3 } from "./vehicle_models/tesla";
@@ -97,6 +97,10 @@ data.routes.forEach((route) => {
 // Setting up the HTTP endpoint
 const server = Bun.serve({
     async fetch(req) {
+        // receive JSON data to a POST request
+        if (req.method !== "GET") return new Response("Page not found", { status: 404 });
+
+      
         // Create the Origin and Destination
         const originVertex = { nickname: "Origin" } as Vertex;
         const destinationVertex = { nickname: "Destination" } as Vertex;
@@ -129,7 +133,7 @@ const server = Bun.serve({
             }
         );
 
-        const finalPath = await myAlgorithm(
+        const { destination_time, ordered_vertices, total_visits } = await myAlgorithm(
             getEnergyConsumptionOfTraversel,
             getTimeToTraverse,
             originVertex,
@@ -139,7 +143,11 @@ const server = Bun.serve({
             0
         )
 
-        return new Response("Bun!");
+        return Response.json({ 
+            ordered_verticies: ordered_vertices.map(vertex => vertex.nickname),
+            destination_time,
+            total_visits
+         });
     },
 });
 

@@ -78,6 +78,7 @@ export async function myAlgorithm(
       return chargingStation.vertex
     }),
   ];
+
   const edges: Edge[] = [];
 
   const graph: Graph = {
@@ -216,5 +217,9 @@ export async function myAlgorithm(
 
   console.log("The duration of the route is ", (destination.time || 0) - startTime);
 
-  return S.reverse();
+  return ({
+    ordered_vertices: S.reverse(),
+    destination_time: destination.time,
+    total_visits
+  });
 }
