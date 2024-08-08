@@ -7,8 +7,9 @@ export type Vertex = {
   energy_needed?: number;
   energy_consumption?: number;
   charging_station?: ChargingStation;
-  debug_data?: {
-    
+  debug_data: {
+    amountCharged: number;
+    chargeTime: number;
   };
 };
 
@@ -16,8 +17,10 @@ export type Edge = {
   start_vertex: Vertex;
   end_vertex: Vertex;
   cost?: number;
-  debug_data?: {
-    distance: number;    
+  debug_data: {
+    distance: number;  
+    speed: number;
+    timeToTraverse: number;
   }
 };
 
@@ -129,6 +132,11 @@ export async function myAlgorithm(
         _edges.push({
           start_vertex: v1,
           end_vertex: v2,
+          debug_data: {
+            distance: Number.MAX_SAFE_INTEGER,
+            speed: Number.MAX_SAFE_INTEGER,
+            timeToTraverse: Number.MAX_SAFE_INTEGER
+          }
         });
       }
 
