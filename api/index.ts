@@ -30,13 +30,20 @@ async function getEnergyConsumptionOfTraversel(edge: Edge) {
     const edge_dist = await get_shortest_path(edge.start_vertex, edge.end_vertex)
     const edge_radius = 0;
 
-    return ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
+    const energyConsumed = ev_energy(ms, last_ms, delta_h, edge_dist, edge_radius);
+
+    edge.debug_data.energyConsumedOnTraversal = energyConsumed // Debug data
+
+    return energyConsumed;
 }
 
 async function getTimeToTraverse(edge: Edge) {
     const distance = await get_shortest_path(edge.start_vertex, edge.end_vertex);
     const speed = 36 /* 130 km/h */
     const time = distance / speed
+    edge.debug_data.speed = speed;
+    edge.debug_data.distance = distance;
+    edge.debug_data.timeToTraverse = time; // Debug data
 
     return time;
 }
@@ -118,8 +125,20 @@ const server = Bun.serve({
         });
 
         // Create the Origin and Destination
-        const originVertex = { id: "Origin" } as Vertex;
-        const destinationVertex = { id: "Destination" } as Vertex;
+        const originVertex = { 
+            id: "Origin", 
+            debug_data:{
+                amountCharged:0,
+                chargeTime:0,
+            } } as Vertex;
+
+        const destinationVertex = { 
+            id: "Destination",
+            debug_data:{
+                amountCharged:0,
+                chargeTime:0,
+            }
+        } as Vertex;
 
         vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
         vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
@@ -137,7 +156,14 @@ const server = Bun.serve({
         // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
         const chargingStations = prunedChargingStations.map(
             (chargingStation, i) => {
-                const vertex = { id: chargingStation.pool.id.toString() } as Vertex;
+                const vertex = { 
+                    id: chargingStation.pool.id.toString(),
+                    debug_data: {
+                        amountCharged: Number.MAX_SAFE_INTEGER,
+                        chargeTime: Number.MAX_SAFE_INTEGER,
+                        timeOfArrival: Number.MAX_SAFE_INTEGER
+                    } 
+                } as Vertex;
                 vertexToLatLng.set(vertex, {
                     lat: chargingStation.lat,
                     lng: chargingStation.lng,

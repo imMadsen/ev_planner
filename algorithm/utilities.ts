@@ -60,7 +60,7 @@ export function getChargingMetricsByVehicleModel(
       const h = l2_x - l1_x;
 
       sum += h * ((b_1 + b_2) / 2 / 3600); // Convert from Ws to Wh
-      if (targetSum < sum) return l1_x;
+      if (targetSum < sum) return {chargeFinishTime: l1_x, amountCharged: sum};
       iterations += 1;
     }
   }

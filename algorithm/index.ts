@@ -21,6 +21,7 @@ export type Edge = {
     distance: number;  
     speed: number;
     timeToTraverse: number;
+    energyConsumedOnTraversal: number;
   }
 };
 
@@ -83,7 +84,7 @@ export async function myAlgorithm(
     let doneCharging = Number.MAX_SAFE_INTEGER;
     
     for (let _connector of chargingStation.connectors) {
-      let _doneCharging = getChargingMetricsByVehicleModel(
+      let _chargingMetrics = getChargingMetricsByVehicleModel(
         _connector.output_time_kw,
         vertex.time!,
         energyRequired,
@@ -91,18 +92,21 @@ export async function myAlgorithm(
         vertex.battery_state_wh!
       );
 
-      if (_doneCharging === undefined) {
+      if (_chargingMetrics === undefined) {
         continue;
       }
 
-      if (_doneCharging < doneCharging) {
-        doneCharging = _doneCharging;
+      if (_chargingMetrics.chargeFinishTime < doneCharging) {
+        vertex.debug_data.amountCharged = _chargingMetrics.amountCharged
+        vertex.debug_data.chargeTime = _chargingMetrics.chargeFinishTime
+        doneCharging = _chargingMetrics.chargeFinishTime;
         connector = _connector;
       }
     }
 
     // Check if a connector was found, if so use it
     if (connector !== undefined) {
+      
       return {
         chargingTime: doneCharging - vertex.time!,
         energyRequired
@@ -135,7 +139,8 @@ export async function myAlgorithm(
           debug_data: {
             distance: Number.MAX_SAFE_INTEGER,
             speed: Number.MAX_SAFE_INTEGER,
-            timeToTraverse: Number.MAX_SAFE_INTEGER
+            timeToTraverse: Number.MAX_SAFE_INTEGER,
+            energyConsumedOnTraversal: Number.MAX_SAFE_INTEGER
           }
         });
       }
@@ -189,7 +194,6 @@ export async function myAlgorithm(
 
       // Calculate the consumption of the edge
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
-
       // Calculcate required amount to charge for traversal
       const energyRequired = energyConsumption - u.battery_state_wh!;
 
@@ -248,8 +252,19 @@ export async function myAlgorithm(
 
   const ordered_vertices = S.reverse();
 
+
+  let relevant_edges: Edge[] = []
   // Return all "relevant" edges for debugging purposes
-  const relevant_edges = _edges.filter(({ start_vertex, end_vertex }) => ordered_vertices.includes(start_vertex) && ordered_vertices.includes(end_vertex))
+
+  for (let i = 0; i < S.length - 1; i++) {
+    const edge = _edges.find(({ start_vertex, end_vertex }) => 
+        (start_vertex === S[i] && end_vertex === S[i+1]) || 
+        (start_vertex === S[i+1] && end_vertex === S[i])
+    );
+    if (edge) {
+        relevant_edges.push(edge);
+    }
+}
 
   return {
     ordered_vertices: ordered_vertices.map(({ id, debug_data }) => ({ id, debug_data })),
