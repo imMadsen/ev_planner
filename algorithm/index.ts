@@ -252,7 +252,7 @@ export async function myAlgorithm(
   const relevant_edges = _edges.filter(({ start_vertex, end_vertex }) => ordered_vertices.includes(start_vertex) && ordered_vertices.includes(end_vertex))
 
   return {
-    ordered_vertices: ordered_vertices.map((vertex) => vertex.debug_data),
+    ordered_vertices: ordered_vertices.map(({ id, debug_data }) => ({ id, debug_data })),
     relevant_edges: relevant_edges.map((edge) => edge.debug_data),
     destination_time: destination.time,
     total_visits,

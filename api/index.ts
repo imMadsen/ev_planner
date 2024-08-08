@@ -7,8 +7,6 @@ import { prune_distance } from "./prune/prune_distance";
 import { chargeMapChargingStations, distances } from "data";
 import { debug_scale } from "./debug"
 
-import { findXForArea, findDynamicXForArea } from "algorithm/utilities";
-
 type LatLng = {
     lat: number;
     lng: number;
@@ -48,7 +46,7 @@ async function get_shortest_path(
     origin: Vertex,
     destination: Vertex
 ) {
-    const hash = `${origin.nickname}_${destination.nickname}`;
+    const hash = `${origin.id}_${destination.id}`;
 
     const cachedDistance = distances[hash];
     if (cachedDistance) {
@@ -120,8 +118,8 @@ const server = Bun.serve({
         });
 
         // Create the Origin and Destination
-        const originVertex = { nickname: "Origin" } as Vertex;
-        const destinationVertex = { nickname: "Destination" } as Vertex;
+        const originVertex = { id: "Origin" } as Vertex;
+        const destinationVertex = { id: "Destination" } as Vertex;
 
         vertexToLatLng.set(originVertex, { lat: origin.lat, lng: origin.lng });
         vertexToLatLng.set(destinationVertex, { lat: destination.lat, lng: destination.lng });
@@ -139,7 +137,7 @@ const server = Bun.serve({
         // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
         const chargingStations = prunedChargingStations.map(
             (chargingStation, i) => {
-                const vertex = { nickname: chargingStation.pool.id.toString() } as Vertex;
+                const vertex = { id: chargingStation.pool.id.toString() } as Vertex;
                 vertexToLatLng.set(vertex, {
                     lat: chargingStation.lat,
                     lng: chargingStation.lng,
@@ -153,7 +151,7 @@ const server = Bun.serve({
             }
         );
 
-        const { destination_time, ordered_vertices, total_visits } = await myAlgorithm(
+        const { destination_time, ordered_vertices, total_visits, relevant_edges } = await myAlgorithm(
             getEnergyConsumptionOfTraversel,
             getTimeToTraverse,
             originVertex,
@@ -171,7 +169,7 @@ const server = Bun.serve({
         */
 
         const response = Response.json({
-            ordered_vertices: ordered_vertices.map(vertex => vertex.nickname),
+            ordered_vertices: ordered_vertices.map(vertex => vertex.id),
             charging_stations_count: prunedChargingStations.length,
             destination_time,
             total_visits,
