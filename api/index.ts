@@ -167,7 +167,7 @@ const server = Bun.serve({
         Distance kørt i alt
         Mænge laderstationer besøgt
         Tid brugt og mængde ladet ved hver station
-
+        Time to compute
         */
 
         const response = Response.json({
