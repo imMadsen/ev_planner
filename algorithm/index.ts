@@ -77,18 +77,18 @@ export async function myAlgorithm(
 
   async function getTimeToChargeCandidate(
     vertex: Vertex,
-    energyRequired: number,
+    targetSoC: number,
     chargingStation: ChargingStation,
     vehicle: Vehicle
   ) {
     let connector: Connector | undefined;
-    let doneCharging = Number.MAX_SAFE_INTEGER;
+    let chargeFinishTime = Number.MAX_SAFE_INTEGER;
     
     for (let _connector of chargingStation.connectors) {
       let _chargingMetrics = getChargingMetricsByVehicleModel(
         _connector.output_time_kw,
         vertex.time!,
-        energyRequired,
+        targetSoC,
         vehicle.model,
         vertex.battery_state_wh!
       );
@@ -96,8 +96,8 @@ export async function myAlgorithm(
         continue;
       }
 
-      if (_chargingMetrics.chargeFinishTime < doneCharging) {
-        doneCharging = _chargingMetrics.chargeFinishTime;
+      if (_chargingMetrics.chargeFinishTime < chargeFinishTime) {
+        chargeFinishTime = _chargingMetrics.chargeFinishTime;
         connector = _connector;
       }
     }
@@ -106,8 +106,8 @@ export async function myAlgorithm(
     if (connector !== undefined) {
       
       return {
-        chargingTime: doneCharging - vertex.time!,
-        energyRequired
+        timeSpentCharging: chargeFinishTime - vertex.time!,
+        targetSoC: targetSoC
       };
     }
   }
@@ -173,7 +173,6 @@ export async function myAlgorithm(
 
     if (!u) throw "Dijkstra was unable to find a valid path 🤡";
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
-    if (u === destination) break;
 
 
     // Remove u from Q
@@ -204,10 +203,11 @@ export async function myAlgorithm(
 
       // Check if edge can be traversed without charging
       if (energyConsumption <= u.battery_state_wh!) {
-        if(u.id == "Origin" && v.id == "Destination"){
-          console.log("IT CAN REACH");
-        }
+
         cost = await getTimeToTraverse(edge);
+        if(u.id == "Origin" && v.id == "Destination"){
+          console.log("IT CAN REACH WITH A COST OF " + cost);
+        }
         batteryState = u.battery_state_wh! - energyConsumption;
       } else {
         // Check if at a charging staiton
@@ -222,31 +222,42 @@ export async function myAlgorithm(
             // Try to calculate the most optimal charger
             let timeToChargeCandidate = await getTimeToChargeCandidate(
               u,
-              energyConsumption - u.battery_state_wh!, // Calculcate missing amount of energy for traversal
+              energyConsumption, // Calculcate missing amount of energy for traversal
               chargingStation,
               vehicle
             );
 
             if (timeToChargeCandidate) {
-              const { chargingTime, energyRequired } = timeToChargeCandidate;
+              const { timeSpentCharging: timeSpentCharging, targetSoC: targetSoc } = timeToChargeCandidate;
               const traverseTime = await getTimeToTraverse(edge);
-              batteryState = u.battery_state_wh! - energyRequired;
-              cost = chargingTime + traverseTime;
+              batteryState = targetSoc - energyConsumption;
+              cost = timeSpentCharging + traverseTime;
             }
           }
         }
       }
-
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
+        if(v.id == "Destination"){
+          console.log("OVERWRITING DESTINATION")
+
+          console.log("Destination time: " + v.time)
+          console.log("u id " + u.id + " and u time " + u.time)
+          console.log("Alternative cost: " + alt)
+          console.log()
+          let p = u;
+          while (previous.get(p)) {
+            p = previous.get(p)!;
+          }
+        }
         v.battery_state_wh = batteryState;
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
-
         dist.set(v, alt);
         previous.set(v, u);
       }
     }
+    if (u === destination) break;
   }
 
   const S: Vertex[] = [];
@@ -269,12 +280,12 @@ export async function myAlgorithm(
   let totalEnergySpent = 0;
   let totalEnergyCharged = 0;
   let totalTimeSpentCharging = 0;
+
+  let totalLegTime = 0;
   for (let i = 0; i < ordered_vertices.length - 1; i++) {
-    console.log(`Visited vertex ${ordered_vertices[i].id} Current charge at: ${ordered_vertices[i].battery_state_wh}. The vehicle charged ${ordered_vertices[i].debug_data.amountCharged} and it took ${ordered_vertices[i].debug_data.chargeTime} `)
-    console.log(`Time for current Vertex is ${ordered_vertices[i].time}`)
-    console.log();
     totalEnergyCharged += ordered_vertices[i].debug_data.amountCharged;
     totalTimeSpentCharging += ordered_vertices[i].debug_data.chargeTime;
+
 
     const edge = _edges.find(({ start_vertex, end_vertex }) => 
         (start_vertex === ordered_vertices[i] && end_vertex === ordered_vertices[i+1]) || 
@@ -287,20 +298,10 @@ export async function myAlgorithm(
 
       relevant_edges.push(edge);
 
-      console.log();
+      totalLegTime += await getTimeToTraverse(edge);
 
-      console.log(`Traversed edge between ${ordered_vertices[i].id} - ${ordered_vertices[i + 1].id}. The car traversed ${edge.debug_data.distance}m, consumed ${edge.debug_data.energyConsumedOnTraversal}Wh, and it took ${edge.debug_data.timeToTraverse} seconds`)
     }
-    console.log();
-    console.log();
-    console.log();
-    console.log();
 }
-console.log("Time for last vertex is " + ordered_vertices[ordered_vertices.length - 1].time)
-console.log("Time for 2nd last vertex is " + ordered_vertices[ordered_vertices.length - 2].time)
-
-console.log(`The car traversed a total distance of ${totalDistanceTraveled}m used ${totalEnergySpent}Wh, charged ${totalEnergyCharged}, which took ${totalTimeSpentCharging}.`)
-console.log(`Total time spent: ${totalTimeSpent}.`)
 ordered_vertices.forEach(vertex => console.log(vertex.id))
 
 return {

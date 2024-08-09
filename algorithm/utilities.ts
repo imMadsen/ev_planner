@@ -30,21 +30,21 @@ export function findXForArea(
 
 export function getChargingMetricsByVehicleModel(
   points: [number, number][],
-  start: number,
-  targetSum: number,
+  startTime: number,
+  targetSoC: number,
   vehicleModel: VehicleModel,
   initalSoC: number
 ) {
-  let sum = 0;
+  let SoC = 0 + initalSoC;
   let increments = 1;
   let iterations = 0;
 
   for (let i = 1; i <= points.length - 1; i += increments) {
-    if (start < points[i][0]) {
+    if (startTime < points[i][0]) {
       let batteryPercentage = Math.floor(Math.min(initalSoC, vehicleModel.battery_capacity_wh)* 100 / vehicleModel.battery_capacity_wh )
 
       let xPoint = i - increments >= 0 ? i - increments : 0;
-      const l1_x = Math.max(start, points[xPoint][0]);
+      const l1_x = Math.max(startTime, points[xPoint][0]);
       const l2_x = points[i][0];
 
       const delta =
@@ -59,8 +59,8 @@ export function getChargingMetricsByVehicleModel(
 
       const h = l2_x - l1_x;
 
-      sum += h * ((b_1 + b_2) / 2 / 3600); // Convert from Ws to Wh
-      if (targetSum < sum) return {chargeFinishTime: l1_x, amountCharged: sum};
+      SoC += h * ((b_1 + b_2) / 2 / 3600); // Convert from Ws to Wh
+      if (targetSoC < SoC) return {chargeFinishTime: l1_x, newSoC: SoC};
       iterations += 1;
     }
   }
