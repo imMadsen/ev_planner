@@ -36,7 +36,7 @@ export function getChargingMetricsByVehicleModel(
   initalSoC: number
 ) {
   let SoC = 0 + initalSoC;
-  let increments = 1;
+  let increments = 30;
   let iterations = 0;
 
   for (let i = 1; i <= points.length - 1; i += increments) {

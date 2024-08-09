@@ -173,16 +173,13 @@ export async function myAlgorithm(
 
     if (!u) throw "Dijkstra was unable to find a valid path 🤡";
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
+    if (u === destination) break;
 
 
     // Remove u from Q
     Q = Q.filter((i) => i !== u);
 
     for (const v of getNeighbours(u, graph)) {
-
-      if(u.id == "Origin" && v.id == "Destination"){
-        console.log(v.id);
-      }
       total_visits++;
 
       // Get the edge between our current node (u) and neighbour (v)
@@ -196,18 +193,11 @@ export async function myAlgorithm(
       // Calculate the consumption of the edge
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
 
-      if(u.id == "Origin" && v.id == "Destination"){
-        console.log(energyConsumption)
-        console.log(u.battery_state_wh)
-      }
-
       // Check if edge can be traversed without charging
       if (energyConsumption <= u.battery_state_wh!) {
 
         cost = await getTimeToTraverse(edge);
-        if(u.id == "Origin" && v.id == "Destination"){
-          console.log("IT CAN REACH WITH A COST OF " + cost);
-        }
+
         batteryState = u.battery_state_wh! - energyConsumption;
       } else {
         // Check if at a charging staiton
@@ -238,18 +228,8 @@ export async function myAlgorithm(
       }
       const alt = dist.get(u)! + cost;
       if (alt < dist.get(v)!) {
-        if(v.id == "Destination"){
-          console.log("OVERWRITING DESTINATION")
-
-          console.log("Destination time: " + v.time)
-          console.log("u id " + u.id + " and u time " + u.time)
-          console.log("Alternative cost: " + alt)
-          console.log()
-          let p = u;
-          while (previous.get(p)) {
-            p = previous.get(p)!;
-          }
-        }
+        
+        
         v.battery_state_wh = batteryState;
         v.energy_consumption = energyConsumption;
         v.time = u.time! + cost;
@@ -257,7 +237,6 @@ export async function myAlgorithm(
         previous.set(v, u);
       }
     }
-    if (u === destination) break;
   }
 
   const S: Vertex[] = [];
@@ -301,6 +280,7 @@ export async function myAlgorithm(
       totalLegTime += await getTimeToTraverse(edge);
 
     }
+
 }
 ordered_vertices.forEach(vertex => console.log(vertex.id))
 

@@ -55,8 +55,8 @@ chargeMapChargingStations.forEach(({ lat, lng }) => {
 
 const next_btn = document.querySelector("#next-btn")! as HTMLButtonElement;
 
-const origin = [56.531221, 8.306049]
-const destination = [55.485505, 8.505668]
+const origin = [57.738167, 10.633207]
+const destination = [55.618545, 12.605794]
 
 let circle_markers: CircleMarker<any>[] = []
 let geojson: GeoJSON<any, any> | undefined;
