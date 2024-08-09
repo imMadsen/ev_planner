@@ -180,7 +180,8 @@ const server = Bun.serve({
             destinationVertex,
             vehicle,
             chargingStations,
-            0
+            0,
+            get_shortest_path
         )
 
         const response = Response.json({

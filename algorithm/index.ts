@@ -1,5 +1,6 @@
 import { getChargingMetricsByVehicleModel, findXForArea } from "./utilities";
 
+
 export type Vertex = {
   id?: string;
   time?: number;
@@ -12,18 +13,18 @@ export type Vertex = {
     amountCharged: number;
     chargeTime: number;
   };
-};
+}; 
 
 export type Edge = {
   start_vertex: Vertex;
   end_vertex: Vertex;
   cost?: number;
   debug_data: {
-    distance: number;  
+    distance: number;
     speed: number;
     timeToTraverse: number;
     energyConsumedOnTraversal: number;
-  }
+  };
 };
 
 export type Graph = {
@@ -61,19 +62,33 @@ export async function myAlgorithm(
   destination: Vertex,
   vehicle: Vehicle,
   charging_stations: ChargingStation[],
-  startTime: number
+  startTime: number,
+  getShortestPath: (startVertex: Vertex, endVertex: Vertex) => Promise<number>
 ) {
   let total_visits = 0;
+  const dist = new Map<Vertex, number>();
+  const previous = new Map<Vertex, Vertex | undefined>();
 
-  function getNeighbours(u: Vertex, graph: Graph): Vertex[] {
-    return [
-      ...new Set(
-        graph.edges
-          .filter((edge) => edge.start_vertex === u)
-          .map((edge) => edge.end_vertex)
-      ),
-    ];
+  async function getNeighboursWithShorterDistanceToDestination(u: Vertex, graph: Graph): Promise<Vertex[]> {
+    const currentDistance = await getShortestPath(u, destination);
+  
+    const neighbours = graph.edges
+      .filter((edge) => edge.start_vertex === u)
+      .map((edge) => edge.end_vertex);
+  
+    const filteredNeighbours = [];
+  
+    for (const neighbour of neighbours) {
+      const neighbourDistance = await getShortestPath(neighbour, destination);
+      if (neighbourDistance < currentDistance) {
+        filteredNeighbours.push(neighbour);
+      }
+    }
+  
+    // Removing duplicates using Set
+    return [...new Set(filteredNeighbours)];
   }
+  
 
   async function getTimeToChargeCandidate(
     vertex: Vertex,
@@ -83,7 +98,7 @@ export async function myAlgorithm(
   ) {
     let connector: Connector | undefined;
     let chargeFinishTime = Number.MAX_SAFE_INTEGER;
-    
+
     for (let _connector of chargingStation.connectors) {
       let _chargingMetrics = getChargingMetricsByVehicleModel(
         _connector.output_time_kw,
@@ -104,10 +119,9 @@ export async function myAlgorithm(
 
     // Check if a connector was found, if so use it
     if (connector !== undefined) {
-      
       return {
         timeSpentCharging: chargeFinishTime - vertex.time!,
-        targetSoC: targetSoC
+        targetSoC: targetSoC,
       };
     }
   }
@@ -138,13 +152,10 @@ export async function myAlgorithm(
             distance: Number.MAX_SAFE_INTEGER,
             speed: Number.MAX_SAFE_INTEGER,
             timeToTraverse: Number.MAX_SAFE_INTEGER,
-            energyConsumedOnTraversal: Number.MAX_SAFE_INTEGER
-          }
+            energyConsumedOnTraversal: Number.MAX_SAFE_INTEGER,
+          },
         });
       }
-
-  const dist = new Map<Vertex, number>();
-  const previous = new Map<Vertex, Vertex | undefined>();
 
   for (const vertex of graph.vertices) {
     dist.set(vertex, Number.MAX_SAFE_INTEGER);
@@ -177,15 +188,10 @@ export async function myAlgorithm(
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
     if (u === destination || shouldBreakFlag) break;
 
-
     // Remove u from Q
     Q = Q.filter((i) => i !== u);
 
-    for (const v of getNeighbours(u, graph)) {
-
-      if(u.id == "Origin" && v.id == "Destination"){
-        console.log(v.id);
-      }
+    for (const v of await getNeighboursWithShorterDistanceToDestination(u, graph)) {
       total_visits++;
 
       // Get the edge between our current node (u) and neighbour (v)
@@ -199,18 +205,10 @@ export async function myAlgorithm(
       // Calculate the consumption of the edge
       const energyConsumption = await getEnergyConsumptionOfTraversel(edge);
 
-      if(u.id == "Origin" && v.id == "Destination"){
-        console.log(energyConsumption)
-        console.log(u.battery_state_wh)
-      }
-
       // Check if edge can be traversed without charging
       if (energyConsumption <= u.battery_state_wh!) {
-
         cost = await getTimeToTraverse(edge);
-        if(u.id == "Origin" && v.id == "Destination"){
-          console.log("IT CAN REACH WITH A COST OF " + cost);
-        }
+
         batteryState = u.battery_state_wh! - energyConsumption;
       } else {
         // Check if at a charging staiton
@@ -219,7 +217,6 @@ export async function myAlgorithm(
         );
 
         if (chargingStation !== undefined) {
-
           // Make sure the vehicle can store that much energy
           if (energyConsumption <= vehicle.model.battery_capacity_wh) {
             // Try to calculate the most optimal charger
@@ -231,7 +228,10 @@ export async function myAlgorithm(
             );
 
             if (timeToChargeCandidate) {
-              const { timeSpentCharging: timeSpentCharging, targetSoC: targetSoc } = timeToChargeCandidate;
+              const {
+                timeSpentCharging: timeSpentCharging,
+                targetSoC: targetSoc,
+              } = timeToChargeCandidate;
               const traverseTime = await getTimeToTraverse(edge);
               batteryState = targetSoc - energyConsumption;
               cost = timeSpentCharging + traverseTime;
@@ -247,7 +247,7 @@ export async function myAlgorithm(
 
         dist.set(v, alt);
         previous.set(v, u);
-        if(v === destination) shouldBreakFlag = true;
+        if (v === destination) shouldBreakFlag = true;
       }
     }
   }
@@ -263,8 +263,7 @@ export async function myAlgorithm(
 
   const ordered_vertices = S.reverse();
 
-
-  let relevant_edges: Edge[] = []
+  let relevant_edges: Edge[] = [];
   // Return all "relevant" edges for debugging purposes
 
   let totalDistanceTraveled = 0;
@@ -278,10 +277,12 @@ export async function myAlgorithm(
     totalEnergyCharged += ordered_vertices[i].debug_data.amountCharged;
     totalTimeSpentCharging += ordered_vertices[i].debug_data.chargeTime;
 
-
-    const edge = _edges.find(({ start_vertex, end_vertex }) => 
-        (start_vertex === ordered_vertices[i] && end_vertex === ordered_vertices[i+1]) || 
-        (start_vertex === ordered_vertices[i+1] && end_vertex === ordered_vertices[i])
+    const edge = _edges.find(
+      ({ start_vertex, end_vertex }) =>
+        (start_vertex === ordered_vertices[i] &&
+          end_vertex === ordered_vertices[i + 1]) ||
+        (start_vertex === ordered_vertices[i + 1] &&
+          end_vertex === ordered_vertices[i])
     ) as Edge;
     if (edge) {
       totalDistanceTraveled += edge.debug_data.distance;
@@ -291,19 +292,21 @@ export async function myAlgorithm(
       relevant_edges.push(edge);
 
       totalLegTime += await getTimeToTraverse(edge);
-
     }
+  }
 
-}
-ordered_vertices.forEach(vertex => console.log(vertex.id))
-
-return {
-    ordered_vertices: ordered_vertices.map(({ id, debug_data }) => ({ id, debug_data })),
-    relevant_edges: relevant_edges.map(({ debug_data, end_vertex, start_vertex }) => ({
-      end_vertex: end_vertex.id,
-      start_vertex: start_vertex.id,
-      debug_data
+  return {
+    ordered_vertices: ordered_vertices.map(({ id, debug_data }) => ({
+      id,
+      debug_data,
     })),
+    relevant_edges: relevant_edges.map(
+      ({ debug_data, end_vertex, start_vertex }) => ({
+        end_vertex: end_vertex.id,
+        start_vertex: start_vertex.id,
+        debug_data,
+      })
+    ),
     destination_time: destination.time,
     total_visits,
   };
