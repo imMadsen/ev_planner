@@ -159,6 +159,8 @@ export async function myAlgorithm(
   // Create a copy of vertices
   let Q = [...graph.vertices];
 
+  let shouldBreakFlag = false;
+
   while (Q.length > 0) {
     // vertex in Q with smallest dist[]
     let u: Vertex | undefined;
@@ -173,6 +175,7 @@ export async function myAlgorithm(
 
     if (!u) throw "Dijkstra was unable to find a valid path 🤡";
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
+    if (u === destination || shouldBreakFlag) break;
 
 
     // Remove u from Q
@@ -244,9 +247,9 @@ export async function myAlgorithm(
 
         dist.set(v, alt);
         previous.set(v, u);
+        if(v === destination) shouldBreakFlag = true;
       }
     }
-    if (u === destination) break;
   }
 
   const S: Vertex[] = [];
