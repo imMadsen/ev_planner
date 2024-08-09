@@ -82,11 +82,11 @@ next_btn.addEventListener("click", async () => {
 
   const data = await response.json() as APIResponse
 
-  const { vertices, ordered_vertices, total_visits, charging_stations_count, relevant_edges } = data;
+  const { vertices, ordered_vertices, total_visits, charging_stations_count, relevant_edges, destination_time } = data;
 
   const end_time = new Date().getTime();
 
-  console.log("Experiment finished duration was ", end_time - start_time, ", parameter was", parameter, ", charging_station_count was", charging_stations_count, ", total_visits was ", total_visits)
+  console.log("Experiment finished duration was ", end_time - start_time, "destination time was", destination_time, "parameter was", parameter, ", charging_station_count was", charging_stations_count, ", total_visits was ", total_visits)
 
   // Draw Route
   const json = {
@@ -138,7 +138,7 @@ next_btn.addEventListener("click", async () => {
       console.log(vertex)
 
       if (lastSelectedVertex) {
-        const relevant_edge = relevant_edges.find(edge => edge.start_vertex == vertex.id && edge.end_vertex == lastSelectedVertex.id) 
+        const relevant_edge = relevant_edges.find(edge => edge.start_vertex == vertex.id && edge.end_vertex == lastSelectedVertex!.id) 
         console.log(relevant_edge);
       }
 
