@@ -2,14 +2,14 @@ import type { Vehicle, VehicleModel, Vertex } from ".";
 
 export function findXForArea(
   points: [number, number][],
-  start: number,
-  targetSum: number
+  initialSoC: number,
+  targetSoC: number
 ) {
-  let sum = 0;
+  let SoC = 0;
 
   for (let i = 1; i <= points.length - 1; i++) {
-    if (start < points[i][0]) {
-      const l1_x = Math.max(start, points[i - 1][0]);
+    if (initialSoC < points[i][0]) {
+      const l1_x = Math.max(initialSoC, points[i - 1][0]);
       const l2_x = points[i][0];
 
       const delta =
@@ -19,9 +19,9 @@ export function findXForArea(
 
       const h = l2_x - l1_x;
 
-      sum += h * ((b_1 + b_2) / 2 / 3600); // Convert from Ws to Wh
+      SoC += h * ((b_1 + b_2) / 2 / 3600); // Convert from Ws to Wh
 
-      if (targetSum < sum) return l1_x;
+      if (targetSoC < SoC) return {chargeFinishTime: l1_x, newSoC: SoC};
     }
   }
 
@@ -37,8 +37,7 @@ export function getChargingMetricsByVehicleModel(
 ) {
   let SoC = 0 + initalSoC;
   let increments = 30;
-  let iterations = 0;
-
+  
   for (let i = 1; i <= points.length - 1; i += increments) {
     if (startTime < points[i][0]) {
       let batteryPercentage = Math.floor(Math.min(initalSoC, vehicleModel.battery_capacity_wh)* 100 / vehicleModel.battery_capacity_wh )
@@ -61,7 +60,6 @@ export function getChargingMetricsByVehicleModel(
 
       SoC += h * ((b_1 + b_2) / 2 / 3600); // Convert from Ws to Wh
       if (targetSoC < SoC) return {chargeFinishTime: l1_x, newSoC: SoC};
-      iterations += 1;
     }
   }
 

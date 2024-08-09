@@ -15,7 +15,7 @@ type LatLng = {
 // Create a generic Connector (Note: Output is constant over time)
 function createGenericConnector(outputkW: number) {
     const genericConnector = {
-        output_time_kw: new Array(10000)
+        output_time_kw: new Array(100000)
             .fill(null)
             .map((_, i) => [i, outputkW * 1000]), // Convert from kW to W
     } as Connector;
