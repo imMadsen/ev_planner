@@ -1,12 +1,11 @@
-import { myAlgorithm, type Connector, type Edge, type Vehicle, type Vertex } from "algorithm";
+import { myAlgorithm, type Connector, type Edge, type Graph, type Vehicle, type Vertex } from "algorithm";
 import { decode_osm } from "./utilities/decode_osm";
 import { get_route_data } from "./utilities/get_route_data";
 import { tesla_model_3 } from "./vehicle_models/tesla";
 import { ev_energy } from "./utilities/ev_energy";
-import { prune_distance } from "./prune/prune_distance";
+import { new_prune_distance } from "./prune/new_prune_distance";
 import { chargeMapChargingStations, distances } from "data";
 import { debug_scale } from "./debug"
-import { prune_k_nearest } from "./prune/prune_k_nearest";
 
 type LatLng = {
     lat: number;
@@ -14,7 +13,7 @@ type LatLng = {
 };
 
 // Create a generic Connector (Note: Output is constant over time)
-function createGenericConnector(outputkW: number) {
+export function createGenericConnector(outputkW: number) {
     const genericConnector = {
         output_time_kw: new Array(100000)
             .fill(null)
@@ -44,7 +43,8 @@ async function getTimeToTraverse(edge: Edge) {
     return time;
 }
 
-const vertexToLatLng = new Map<Vertex, LatLng>();
+export const vertexToLatLng = new Map<Vertex, LatLng>();
+
 async function get_shortest_path(
     origin: Vertex,
     destination: Vertex
@@ -80,7 +80,7 @@ const server = Bun.serve({
     async fetch(req) {
         // receive JSON data to a POST request
         if (req.method !== "GET") return new Response("Page not found", { status: 404 });
-        
+
         const url_search_params = new URLSearchParams(req.url.split("?")[1]);
 
         const olat_search_param = url_search_params.get("olat")
@@ -102,35 +102,19 @@ const server = Bun.serve({
         const parameter_search_param = url_search_params.get("parameter");
         const parameter = parameter_search_param ? Number(parameter_search_param) : 1;
 
-        let vertices: number[][] = [];
-
-        // If they want 6 digits of precision
-        const mul = false ? 1e6 : 1e5;
-
-        // Initialize Route
-        const data = await get_route_data(
-            origin.lat,
-            origin.lng,
-            destination.lat,
-            destination.lng
-        );
-
-        data.routes.forEach((route) => {
-            vertices = [...vertices, ...decode_osm(route.geometry, mul)];
-        });
-
         // Create the Origin and Destination
-        const originVertex = { 
-            id: "Origin", 
-            debug_data:{
+        const originVertex = {
+            id: "Origin",
+            debug_data: {
                 amountCharged: 0,
                 chargeTime: 0,
                 timeOfArrival: 0
-            } } as Vertex;
+            }
+        } as Vertex;
 
-        const destinationVertex = { 
+        const destinationVertex = {
             id: "Destination",
-            debug_data:{
+            debug_data: {
                 amountCharged: 0,
                 chargeTime: 0,
                 timeOfArrival: 0
@@ -148,50 +132,26 @@ const server = Bun.serve({
 
 
         // Prune the charging stations
-        const prunedChargingStations = prune_k_nearest(chargeMapChargingStations, vertices, parameter)
-
-        // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
-        const chargingStations = prunedChargingStations.map(
-            (chargingStation, i) => {
-                const vertex = { 
-                    id: chargingStation.pool.id.toString(),
-                    debug_data: {
-                        amountCharged: 0,
-                        chargeTime: 0,
-                        timeOfArrival: Number.MAX_SAFE_INTEGER
-                    } 
-                } as Vertex;
-                vertexToLatLng.set(vertex, {
-                    lat: chargingStation.lat,
-                    lng: chargingStation.lng,
-                });
-
-                return {
-                    //@ts-ignore
-                    connectors: chargingStation.pool.charging_connectors.map((output) => createGenericConnector(output.power_max)),
-                    vertex: vertex,
-                };
-            }
-        );
+        const { graph, mainpath_vertices, mappedChargingStations } = await new_prune_distance(originVertex, destinationVertex, parameter)
 
         const { destination_time, ordered_vertices, total_visits, relevant_edges } = await myAlgorithm(
             getEnergyConsumptionOfTraversel,
             getTimeToTraverse,
             originVertex,
             destinationVertex,
+            graph,
             vehicle,
-            chargingStations,
+            mappedChargingStations,
             0,
-            get_shortest_path
         )
 
         const response = Response.json({
             ordered_vertices,
-            charging_stations_count: prunedChargingStations.length,
+            charging_stations_count: mappedChargingStations.length,
             destination_time,
             total_visits,
             relevant_edges,
-            vertices
+            vertices: mainpath_vertices
         });
 
         response.headers.set('Access-Control-Allow-Origin', '*');

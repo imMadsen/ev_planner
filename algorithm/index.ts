@@ -60,36 +60,24 @@ export async function myAlgorithm(
   getTimeToTraverse: (edge: Edge) => Promise<number>,
   origin: Vertex,
   destination: Vertex,
+  graph: Graph,
   vehicle: Vehicle,
   charging_stations: ChargingStation[],
   startTime: number,
-  getShortestPath: (startVertex: Vertex, endVertex: Vertex) => Promise<number>
 ) {
-  let total_visits = 0;
-  const dist = new Map<Vertex, number>();
-  const previous = new Map<Vertex, Vertex | undefined>();
 
-  async function getNeighboursWithShorterDistanceToDestination(u: Vertex, graph: Graph): Promise<Vertex[]> {
-    const currentDistance = await getShortestPath(u, destination);
-  
+  async function getNeighbours(u: Vertex, graph: Graph): Promise<Vertex[]> {  
     const neighbours = graph.edges
       .filter((edge) => edge.start_vertex === u)
       .map((edge) => edge.end_vertex);
-  
-    const filteredNeighbours = [];
-  
-    for (const neighbour of neighbours) {
-      const neighbourDistance = await getShortestPath(neighbour, destination);
-      if (neighbourDistance < currentDistance) {
-        filteredNeighbours.push(neighbour);
-      }
-    }
-  
+
     // Removing duplicates using Set
-    return [...new Set(filteredNeighbours)];
+    return [...new Set(neighbours)];
   }
   
-
+  let total_visits = 0;
+  const dist = new Map<Vertex, number>();
+  const previous = new Map<Vertex, Vertex | undefined>();
   async function getTimeToChargeCandidate(
     vertex: Vertex,
     targetSoC: number,
@@ -126,37 +114,6 @@ export async function myAlgorithm(
     }
   }
 
-  // Create a new Graph that only represents distances between chargingStations, origin & destination
-  const vertices: Vertex[] = [
-    origin,
-    destination,
-    ...charging_stations.map((chargingStation) => {
-      chargingStation.vertex.charging_station = chargingStation;
-      return chargingStation.vertex;
-    }),
-  ];
-
-  const _edges: Edge[] = [];
-
-  const graph: Graph = {
-    vertices,
-    edges: _edges,
-  };
-  for (const v1 of vertices)
-    for (const v2 of vertices)
-      if (v1 !== v2) {
-        _edges.push({
-          start_vertex: v1,
-          end_vertex: v2,
-          debug_data: {
-            distance: Number.MAX_SAFE_INTEGER,
-            speed: Number.MAX_SAFE_INTEGER,
-            timeToTraverse: Number.MAX_SAFE_INTEGER,
-            energyConsumedOnTraversal: Number.MAX_SAFE_INTEGER,
-          },
-        });
-      }
-
   for (const vertex of graph.vertices) {
     dist.set(vertex, Number.MAX_SAFE_INTEGER);
     previous.set(vertex, undefined);
@@ -191,7 +148,7 @@ export async function myAlgorithm(
     // Remove u from Q
     Q = Q.filter((i) => i !== u);
 
-    for (const v of await getNeighboursWithShorterDistanceToDestination(u, graph)) {
+    for (const v of await getNeighbours(u, graph)) {
       total_visits++;
 
       // Get the edge between our current node (u) and neighbour (v)
@@ -277,7 +234,7 @@ export async function myAlgorithm(
     totalEnergyCharged += ordered_vertices[i].debug_data.amountCharged;
     totalTimeSpentCharging += ordered_vertices[i].debug_data.chargeTime;
 
-    const edge = _edges.find(
+    const edge = graph.edges.find(
       ({ start_vertex, end_vertex }) =>
         (start_vertex === ordered_vertices[i] &&
           end_vertex === ordered_vertices[i + 1]) ||
