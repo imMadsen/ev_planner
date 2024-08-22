@@ -186,7 +186,7 @@ export async function myAlgorithm(
 
     if (!u) throw "Dijkstra was unable to find a valid path 🤡";
     if (dist.get(u)! >= Number.MAX_SAFE_INTEGER) break;
-    if (u === destination || shouldBreakFlag) break;
+    if (u === destination) break;
 
     // Remove u from Q
     Q = Q.filter((i) => i !== u);

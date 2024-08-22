@@ -6,6 +6,7 @@ import { ev_energy } from "./utilities/ev_energy";
 import { prune_distance } from "./prune/prune_distance";
 import { chargeMapChargingStations, distances } from "data";
 import { debug_scale } from "./debug"
+import { prune_k_nearest } from "./prune/prune_k_nearest";
 
 type LatLng = {
     lat: number;
@@ -147,7 +148,7 @@ const server = Bun.serve({
 
 
         // Prune the charging stations
-        const prunedChargingStations = prune_distance(chargeMapChargingStations, vertices, parameter)
+        const prunedChargingStations = prune_k_nearest(chargeMapChargingStations, vertices, parameter)
 
         // Map the ChargeMap Charging Stations to Algorithm ChargingStation Interface
         const chargingStations = prunedChargingStations.map(
