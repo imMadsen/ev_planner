@@ -4,6 +4,7 @@ import { tesla_model_3 } from "./vehicle_models/tesla";
 import { ev_energy } from "./utilities/ev_energy";
 import { distances } from "data";
 import { debug_scale } from "./debug"
+import { new_prune_distance } from "./prune/new_prune_distance";
 import { prune_backwards_edges } from "./prune/prune_backwards_edges";
 import { prune_edges_by_threshold } from "./prune/prune_edges_by_threshold";
 import { prune_k_nearest_smart } from "./prune/prune_k_nearest_smart";
@@ -137,7 +138,6 @@ const server = Bun.serve({
 
         graph = await prune_backwards_edges(graph, destinationVertex);
 
-        graph = await prune_edges_by_threshold(graph, 300000);
 
         const { destination_time, ordered_vertices, total_visits, relevant_edges } = await myAlgorithm(
             getEnergyConsumptionOfTraversel,
