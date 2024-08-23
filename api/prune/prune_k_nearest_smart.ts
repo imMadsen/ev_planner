@@ -6,8 +6,9 @@ import {
 import { get_route_data } from "../utilities/get_route_data";
 import { vertexToLatLng, createGenericConnector } from "..";
 import { decode_osm } from "../utilities/decode_osm";
+import { euclidean_distance } from "../utilities/euclidean_distance";
 
-export async function new_k_nearest(originVertex: Vertex, destinationVertex: Vertex, k: number) {
+export async function prune_k_nearest_smart(originVertex: Vertex, destinationVertex: Vertex, k: number) {
   let prunedChargingStations: ChargingStation[] = [];
 
   let mainpath_vertices: number[][] = []
@@ -31,17 +32,19 @@ export async function new_k_nearest(originVertex: Vertex, destinationVertex: Ver
 
   // Get the k-nearest to the line segment
   let previous_mainpath_vertex: number[] | undefined;
-  let previousNode: number[] | undefined;
   mainpath_vertices.forEach((vertex, index) => {
     const [lng1, lat1] = vertex;
-    if (previousNode !== undefined && index > 0) {
-      const [lng2, lat2] = previousNode;
+    if (previous_mainpath_vertex !== undefined && index > 0) {
+      const [lng2, lat2] = previous_mainpath_vertex;
       const nearestChargingStations: { distance: number, chargingStation: ChargingStation }[] = [];
 
       chargeMapChargingStations.forEach((chargingStation) => {
         const dist = distance_point_to_line_segment(chargingStation.lat, chargingStation.lng, lat1, lng1, lat2, lng2);
         nearestChargingStations.push({ distance: dist, chargingStation });
       });
+
+
+      console.log(euclidean_distance(lat1, lng1, lat2, lng2))
 
       // Sort the nearest charging stations by distance
       nearestChargingStations.sort((a, b) => a.distance - b.distance);
