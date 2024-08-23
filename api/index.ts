@@ -1,13 +1,13 @@
-import { myAlgorithm, type Connector, type Edge, type Graph, type Vehicle, type Vertex } from "algorithm";
-import { decode_osm } from "./utilities/decode_osm";
+import { myAlgorithm, type Connector, type Edge, type Vehicle, type Vertex } from "algorithm";
 import { get_route_data } from "./utilities/get_route_data";
 import { tesla_model_3 } from "./vehicle_models/tesla";
 import { ev_energy } from "./utilities/ev_energy";
-import { new_prune_distance } from "./prune/new_prune_distance";
-import { chargeMapChargingStations, distances } from "data";
+import { distances } from "data";
 import { debug_scale } from "./debug"
 import { prune_backwards_edges } from "./prune/prune_backwards_edges";
 import { prune_edges_by_threshold } from "./prune/prune_edges_by_threshold";
+import { prune_k_nearest_smart } from "./prune/prune_k_nearest_smart";
+
 type LatLng = {
     lat: number;
     lng: number;

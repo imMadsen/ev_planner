@@ -1,14 +1,14 @@
 import type { Edge, Graph, Vertex } from "algorithm";
 import { type ChargingStation, chargeMapChargingStations } from "data";
 import {
-  distance_point_to_line_segment_km,
+  distance_point_to_line_segment,
 } from "../utilities/distance_point_to_line_segment";
 import { get_route_data } from "../utilities/get_route_data";
 import { vertexToLatLng, createGenericConnector } from "..";
 import { decode_osm } from "../utilities/decode_osm";
 
-export async function new_prune_distance(originVertex: Vertex, destinationVertex: Vertex, maxRange: number) {
-  const prunedChargingStations: ChargingStation[] = [];
+export async function new_prune_k_nearest(originVertex: Vertex, destinationVertex: Vertex, k: number) {
+  let prunedChargingStations: ChargingStation[] = [];
 
   let mainpath_vertices: number[][] = []
 
@@ -29,30 +29,31 @@ export async function new_prune_distance(originVertex: Vertex, destinationVertex
     mainpath_vertices = [...mainpath_vertices, ...decode_osm(route.geometry, mul)];
   });
 
+  // Get the k-nearest to the line segment
   let previous_mainpath_vertex: number[] | undefined;
   mainpath_vertices.forEach((vertex, index) => {
     const [lng1, lat1] = vertex;
-    
     if (previous_mainpath_vertex !== undefined && index > 0) {
       const [lng2, lat2] = previous_mainpath_vertex;
-      chargeMapChargingStations.forEach((chargingStation: ChargingStation) => {
-        const dist = distance_point_to_line_segment_km(
-          chargingStation.lat,
-          chargingStation.lng,
-          lat1,
-          lng1,
-          lat2,
-          lng2
-        );
+      const nearestChargingStations: { distance: number, chargingStation: ChargingStation }[] = [];
 
-        if (dist <= maxRange) {
-          prunedChargingStations.push(chargingStation);
-        }
+      chargeMapChargingStations.forEach((chargingStation) => {
+        const dist = distance_point_to_line_segment(chargingStation.lat, chargingStation.lng, lat1, lng1, lat2, lng2);
+        nearestChargingStations.push({ distance: dist, chargingStation });
       });
+
+      // Sort the nearest charging stations by distance
+      nearestChargingStations.sort((a, b) => a.distance - b.distance);
+
+      // Get the first k closest charging stations
+      const closestStationsForSegment = nearestChargingStations.slice(0, k).map(entry => entry.chargingStation);
+
+      prunedChargingStations = [...prunedChargingStations, ...closestStationsForSegment];
     }
 
     previous_mainpath_vertex = vertex;
   });
+
 
   // Map the Pruned ChargeMap Charging Stations to Algorithm ChargingStation Interface
   const mappedChargingStations = prunedChargingStations.map(
