@@ -40,7 +40,7 @@ export function getChargingMetricsByVehicleModel(
   
   for (let i = 1; i <= points.length - 1; i += increments) {
     if (startTime < points[i][0]) {
-      let batteryPercentage = Math.floor(Math.min(initalSoC, vehicleModel.battery_capacity_wh)* 100 / vehicleModel.battery_capacity_wh )
+      let batteryPercentage = Math.floor(Math.min(SoC, vehicleModel.battery_capacity_wh)* 100 / vehicleModel.battery_capacity_wh )
 
       let xPoint = i - increments >= 0 ? i - increments : 0;
       const l1_x = Math.max(startTime, points[xPoint][0]);

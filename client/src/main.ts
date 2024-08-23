@@ -61,7 +61,7 @@ const destination = [55.618545, 12.605794]
 let circle_markers: CircleMarker<any>[] = []
 let geojson: GeoJSON<any, any> | undefined;
 
-const parameters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+const parameters = [0.25,0.50,0.75,1]
 
 let i = 0;
 next_btn.addEventListener("click", async () => {

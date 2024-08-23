@@ -6,7 +6,8 @@ import { ev_energy } from "./utilities/ev_energy";
 import { new_prune_distance } from "./prune/new_prune_distance";
 import { chargeMapChargingStations, distances } from "data";
 import { debug_scale } from "./debug"
-
+import { prune_backwards_edges } from "./prune/prune_backwards_edges";
+import { prune_edges_by_threshold } from "./prune/prune_edges_by_threshold";
 type LatLng = {
     lat: number;
     lng: number;
@@ -45,7 +46,7 @@ async function getTimeToTraverse(edge: Edge) {
 
 export const vertexToLatLng = new Map<Vertex, LatLng>();
 
-async function get_shortest_path(
+export async function get_shortest_path(
     origin: Vertex,
     destination: Vertex
 ) {
@@ -132,7 +133,11 @@ const server = Bun.serve({
 
 
         // Prune the charging stations
-        const { graph, mainpath_vertices, mappedChargingStations } = await new_prune_distance(originVertex, destinationVertex, parameter)
+        let { graph, mainpath_vertices, mappedChargingStations } = await new_prune_distance(originVertex, destinationVertex, parameter)
+
+        graph = await prune_backwards_edges(graph, destinationVertex);
+
+        graph = await prune_edges_by_threshold(graph, 300000);
 
         const { destination_time, ordered_vertices, total_visits, relevant_edges } = await myAlgorithm(
             getEnergyConsumptionOfTraversel,
@@ -163,18 +168,3 @@ const server = Bun.serve({
 
 // server.port is the randomly selected port
 console.log(server.port);
-
-
-/*
-const genericConnector = {
-    output_time_kw: new Array(10000)
-        .fill(null)
-        .map((_, i) => [i, 300 * 1000]), // Convert from kW to W
-} as Connector;
-
-
-const timeToChargeDynamic = findDynamicXForArea(genericConnector.output_time_kw, 0, 60000, vehicle, originVertex);
-const timeToCharge = findXForArea(genericConnector.output_time_kw, 0, 60000);
-console.log("TimeDynamic: " + timeToChargeDynamic);
-console.log("Time: " + timeToCharge);
-*/
